@@ -1,0 +1,38 @@
+{
+  "name": "@surfgen/db",
+  "version": "0.1.0",
+  "description": "SurfGen database layer — Prisma schema, client, migrations, seed",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "prisma"],
+  "scripts": {
+    "build": "tsup",
+    "generate": "prisma generate",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "seed": "node --experimental-strip-types src/seed.ts",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.11.0",
+    "@surfgen/core": "workspace:*"
+  },
+  "devDependencies": {
+    "prisma": "^6.11.0",
+    "tsup": "catalog:",
+    "vitest": "catalog:",
+    "@vitest/coverage-v8": "catalog:"
+  }
+}
