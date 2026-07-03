@@ -1,0 +1,22 @@
+{
+  "name": "@surfgen/desktop",
+  "version": "0.1.0",
+  "description": "SurfGen desktop shell — wraps the web studio with local AI runtime detection",
+  "license": "Apache-2.0",
+  "private": true,
+  "main": "dist/main.cjs",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup && electron .",
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "tsup": "catalog:",
+    "vitest": "catalog:",
+    "@vitest/coverage-v8": "catalog:"
+  }
+}
