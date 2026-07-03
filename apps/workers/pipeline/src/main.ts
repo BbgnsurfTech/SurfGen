@@ -122,9 +122,13 @@ async function main(): Promise<void> {
   };
 
   // Queues + orchestrator.
+  // REDIS_PASSWORD/REDIS_TLS support managed Redis (e.g. ElastiCache with
+  // transit encryption + auth token); both default off for local stacks.
   const connection = {
     host: process.env.REDIS_HOST ?? '127.0.0.1',
     port: Number(process.env.REDIS_PORT ?? 6379),
+    ...(process.env.REDIS_PASSWORD && { password: process.env.REDIS_PASSWORD }),
+    ...(process.env.REDIS_TLS === 'true' && { tls: {} }),
   };
   const queue = new BullJobQueue({ connection });
   const orchestrator = new PipelineOrchestrator({

@@ -22,6 +22,11 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+variable "endpoint_public_access_cidrs" {
+  type        = list(string)
+  default     = [] # empty = private-only API endpoint (bastion/VPN). Set office/VPN CIDRs to open public access.
+  description = "CIDRs allowed to reach the public kube-apiserver endpoint. Empty disables public access entirely."
+}
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
@@ -33,8 +38,12 @@ module "eks" {
   vpc_id     = var.vpc_id
   subnet_ids = var.subnet_ids
 
-  enable_irsa                              = true
-  cluster_endpoint_public_access           = true
+  enable_irsa                     = true
+  cluster_endpoint_private_access = true
+  cluster_endpoint_public_access  = length(var.endpoint_public_access_cidrs) > 0
+  cluster_endpoint_public_access_cidrs = var.endpoint_public_access_cidrs
+  # Bootstrap convenience only: the Terraform runner gets cluster-admin. Move
+  # human/CI access to explicit EKS access entries, then set this false.
   enable_cluster_creator_admin_permissions = true
 
   eks_managed_node_groups = merge(

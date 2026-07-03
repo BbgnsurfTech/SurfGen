@@ -83,22 +83,50 @@ resource "aws_iam_role_policy" "bucket_access" {
   })
 }
 
-# CDN in front of media (signed URLs still control access; CloudFront caches).
+# --------------------------------------------------------------------- CDN
+# Opt-in: the default access path is app-generated *S3* signed URLs straight to
+# the bucket. S3 signed URLs are NOT valid through CloudFront, so the CDN only
+# makes sense with CloudFront signed URLs — it therefore requires a viewer
+# key group and stays disabled until a public key is provided.
+variable "cdn_public_key_pem" {
+  type        = string
+  default     = "" # empty = no CDN. Provide the CloudFront signing public key (PEM) to enable.
+  description = "PEM public key for CloudFront signed URLs. The app must then sign with the matching private key."
+}
+
+locals {
+  cdn_enabled = var.cdn_public_key_pem != ""
+}
+
 resource "aws_cloudfront_origin_access_control" "media" {
+  count                             = local.cdn_enabled ? 1 : 0
   name                              = "${var.name}-oac"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
 }
 
+resource "aws_cloudfront_public_key" "media" {
+  count       = local.cdn_enabled ? 1 : 0
+  name        = "${var.name}-signing"
+  encoded_key = var.cdn_public_key_pem
+}
+
+resource "aws_cloudfront_key_group" "media" {
+  count = local.cdn_enabled ? 1 : 0
+  name  = "${var.name}-signers"
+  items = [aws_cloudfront_public_key.media[0].id]
+}
+
 resource "aws_cloudfront_distribution" "media" {
+  count   = local.cdn_enabled ? 1 : 0
   enabled = true
-  comment = "SurfGen media CDN"
+  comment = "SurfGen media CDN (CloudFront signed URLs required)"
 
   origin {
     domain_name              = module.media_bucket.s3_bucket_bucket_regional_domain_name
     origin_id                = "media"
-    origin_access_control_id = aws_cloudfront_origin_access_control.media.id
+    origin_access_control_id = aws_cloudfront_origin_access_control.media[0].id
   }
 
   default_cache_behavior {
@@ -106,6 +134,8 @@ resource "aws_cloudfront_distribution" "media" {
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
+    # Every request must carry a valid CloudFront signed URL/cookie.
+    trusted_key_groups = [aws_cloudfront_key_group.media[0].id]
     # AWS managed CachingOptimized policy.
     cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
   }
@@ -119,6 +149,26 @@ resource "aws_cloudfront_distribution" "media" {
   tags = var.tags
 }
 
+# Without this the OAC cannot read the bucket at all; scope it to this
+# distribution so no other CloudFront distribution can front the bucket.
+resource "aws_s3_bucket_policy" "cdn_read" {
+  count  = local.cdn_enabled ? 1 : 0
+  bucket = module.media_bucket.s3_bucket_id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowCloudFrontOAC"
+      Effect    = "Allow"
+      Principal = { Service = "cloudfront.amazonaws.com" }
+      Action    = "s3:GetObject"
+      Resource  = "${module.media_bucket.s3_bucket_arn}/*"
+      Condition = {
+        StringEquals = { "AWS:SourceArn" = aws_cloudfront_distribution.media[0].arn }
+      }
+    }]
+  })
+}
+
 output "bucket_name" { value = module.media_bucket.s3_bucket_id }
 output "irsa_role_arn" { value = module.irsa.iam_role_arn }
-output "cdn_domain" { value = aws_cloudfront_distribution.media.domain_name }
+output "cdn_domain" { value = local.cdn_enabled ? aws_cloudfront_distribution.media[0].domain_name : null }

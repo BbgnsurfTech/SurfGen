@@ -11,6 +11,21 @@ variable "tags" {
   default = {}
 }
 
+resource "random_password" "redis_auth" {
+  length  = 48
+  special = false
+}
+
+resource "aws_secretsmanager_secret" "redis_auth" {
+  name = "${var.name}-redis-auth"
+  tags = var.tags
+}
+
+resource "aws_secretsmanager_secret_version" "redis_auth" {
+  secret_id     = aws_secretsmanager_secret.redis_auth.id
+  secret_string = random_password.redis_auth.result
+}
+
 module "redis" {
   source  = "terraform-aws-modules/elasticache/aws"
   version = "~> 1.2"
@@ -26,7 +41,10 @@ module "redis" {
   automatic_failover_enabled = true
   multi_az_enabled           = true
   at_rest_encryption_enabled = true
-  transit_encryption_enabled = false # BullMQ inside the VPC; enable + auth token if crossing boundaries
+  # Tenant-derived payloads transit this cluster: TLS + auth required.
+  # Clients set REDIS_TLS=true and REDIS_PASSWORD from the secret below.
+  transit_encryption_enabled = true
+  auth_token                 = random_password.redis_auth.result
 
   # BullMQ requirement: never evict queue data.
   parameter_group_family = "redis7"
@@ -47,3 +65,4 @@ module "redis" {
 }
 
 output "endpoint" { value = module.redis.replication_group_primary_endpoint_address }
+output "auth_secret_arn" { value = aws_secretsmanager_secret.redis_auth.arn }
