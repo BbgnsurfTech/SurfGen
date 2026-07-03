@@ -7,6 +7,7 @@ import { AuditInterceptor } from './common/audit.interceptor';
 import { DomainExceptionFilter } from './common/domain-exception.filter';
 import { EnvelopeInterceptor } from './common/envelope.interceptor';
 import { PrismaService } from './common/prisma.service';
+import { storageProvider } from './common/storage.provider';
 import { HealthController } from './health/health.controller';
 import { AdminController } from './workspace/admin.controller';
 import { BrandExtractController } from './workspace/brand-extract.controller';
@@ -16,6 +17,7 @@ import { LibraryController } from './workspace/library.controller';
 import { StatsController } from './workspace/stats.controller';
 import { OrgsController } from './orgs/orgs.controller';
 import { ProjectsController } from './projects/projects.controller';
+import { EditorController } from './videos/editor.controller';
 import { VideosController } from './videos/videos.controller';
 import { EVENT_BUS, VideosService } from './videos/videos.service';
 import { EVENT_SUBSCRIBER, ProgressGateway } from './ws/progress.gateway';
@@ -47,6 +49,7 @@ const eventBusProvider = {
     OrgsController,
     ProjectsController,
     VideosController,
+    EditorController,
     LibraryController,
     BrandsWorkflowsController,
     BrandExtractController,
@@ -56,6 +59,7 @@ const eventBusProvider = {
   ],
   providers: [
     PrismaService,
+    storageProvider,
     VideosService,
     ProgressGateway,
     eventBusProvider,

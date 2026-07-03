@@ -1,7 +1,7 @@
 'use client';
 
-import { AudioLines, ChevronRight, Languages, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { AudioLines, Check, ChevronRight, Languages, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useToast } from '../ui/toast';
 
 const TABS = ['Script', 'Style', 'Audio'] as const;
@@ -28,16 +28,32 @@ function AssetRow({ icon, title, meta }: { icon: React.ReactNode; title: string;
 
 export interface InspectorProps {
   script: string;
+  sceneId: string | null;
+  isSaving: boolean;
+  onSaveScript: (script: string) => void;
   avatarName: string | null;
   avatarMeta: string;
   voiceName: string | null;
   voiceMeta: string;
 }
 
-export function Inspector({ script, avatarName, avatarMeta, voiceName, voiceMeta }: InspectorProps) {
+export function Inspector({
+  script,
+  sceneId,
+  isSaving,
+  onSaveScript,
+  avatarName,
+  avatarMeta,
+  voiceName,
+  voiceMeta,
+}: InspectorProps) {
   const flash = useToast();
   const [tab, setTab] = useState<(typeof TABS)[number]>('Script');
   const [emotion, setEmotion] = useState<(typeof EMOTIONS)[number]>('Warm');
+  const [draft, setDraft] = useState(script);
+  // Re-sync the textarea when the selected scene (and thus its script) changes.
+  useEffect(() => setDraft(script), [script, sceneId]);
+  const dirty = draft !== script;
 
   return (
     <div className="flex w-[280px] flex-none flex-col border-l border-line bg-card">
@@ -56,15 +72,22 @@ export function Inspector({ script, avatarName, avatarMeta, voiceName, voiceMeta
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         <SectionLabel first>SCRIPT</SectionLabel>
-        <div className="rounded-xl border border-line bg-paper p-3 text-[13px] leading-relaxed text-bark">
-          {script || <span className="text-stone">No script on this scene yet.</span>}
-        </div>
+        <textarea
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          disabled={!sceneId}
+          rows={5}
+          placeholder={sceneId ? 'Write the presenter script for this scene…' : 'Add a scene to start writing.'}
+          className="w-full resize-y rounded-xl border border-line bg-paper p-3 text-[13px] leading-relaxed text-bark outline-none placeholder:text-stone focus:border-primary disabled:opacity-60"
+        />
         <div className="mt-2.5 flex gap-2">
           <button
-            onClick={() => flash('Enhance runs through the configured LLM provider on generate')}
-            className="flex h-[34px] flex-1 items-center justify-center gap-1.5 rounded-full bg-primary text-xs font-bold text-white"
+            onClick={() => (dirty && sceneId ? onSaveScript(draft) : flash('Enhance runs through the configured LLM provider on generate'))}
+            disabled={isSaving}
+            className="flex h-[34px] flex-1 items-center justify-center gap-1.5 rounded-full bg-primary text-xs font-bold text-white disabled:opacity-60"
           >
-            <Sparkles className="size-3.5" strokeWidth={1.6} /> Enhance
+            {dirty ? <Check className="size-3.5" strokeWidth={2} /> : <Sparkles className="size-3.5" strokeWidth={1.6} />}
+            {isSaving ? 'Saving…' : dirty ? 'Save script' : 'Enhance'}
           </button>
           <button
             onClick={() => flash('Translation runs in the pipeline (NLLB / DeepL by config)')}

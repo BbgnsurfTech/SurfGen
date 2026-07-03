@@ -140,6 +140,9 @@ importers:
       '@surfgen/events':
         specifier: workspace:*
         version: link:../../packages/events
+      '@surfgen/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
       '@surfgen/queue':
         specifier: workspace:*
         version: link:../../packages/queue

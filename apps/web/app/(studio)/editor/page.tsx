@@ -1,6 +1,6 @@
 'use client';
 
-import { Captions, WandSparkles } from 'lucide-react';
+import { Captions, Plus, Trash2, WandSparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
@@ -10,11 +10,16 @@ import { EmptyState, LoadingState, gradientFor } from '../../../components/ui/st
 import { useToast } from '../../../components/ui/toast';
 import {
   useAvatars,
+  useCreateScene,
+  useDeleteScene,
   useGenerateVideo,
+  useUpdateScene,
   useVideoDetail,
+  useVideoOutput,
   useVoices,
   useWorkspace,
 } from '../../../lib/api/hooks';
+import { useLiveEvent } from '../../../lib/api/live';
 import { ApiError } from '../../../lib/api/client';
 
 function formatDuration(ms: number | null): string {
@@ -32,8 +37,25 @@ function EditorContent() {
   const avatars = useAvatars();
   const voices = useVoices();
   const generate = useGenerateVideo();
+  const createScene = useCreateScene();
+  const updateScene = useUpdateScene();
+  const deleteScene = useDeleteScene();
   const [activeScene, setActiveScene] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState<{ stage: string; percent: number } | null>(null);
+
+  // Live pipeline progress for THIS video (org-scoped WebSocket).
+  useLiveEvent((event) => {
+    if (event.payload.videoId && event.payload.videoId !== videoId) return;
+    if (event.name === 'video.progress') {
+      setProgress({ stage: String(event.payload.stage ?? ''), percent: Number(event.payload.overallPercent ?? 0) });
+    } else if (event.name === 'video.ready' || event.name === 'video.failed') {
+      setProgress(null);
+    }
+  });
+
+  const isReady = detail.data?.status === 'ready';
+  const output = useVideoOutput(videoId, !!isReady);
 
   if (workspace.isPending || (videoId && detail.isPending)) {
     return <LoadingState label="Loading project…" />;
@@ -87,26 +109,51 @@ function EditorContent() {
               </div>
             )}
             {scenes.map((s, i) => (
-              <button
+              <div
                 key={s.id}
-                onClick={() => setActiveScene(i)}
-                className={`overflow-hidden rounded-xl text-left ${
+                className={`group relative overflow-hidden rounded-xl text-left ${
                   activeScene === i ? 'border-2 border-primary bg-paper' : 'border border-line bg-card'
                 }`}
               >
-                <div className="relative h-[62px]" style={{ background: gradientFor(i) }}>
-                  <span className="absolute top-[5px] left-[7px] text-[10px] font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,.5)]">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                </div>
-                <div className="px-[9px] py-[7px]">
-                  <div className="truncate text-[11.5px] font-semibold">
-                    {(s.content.name as string | undefined) ?? `Scene ${i + 1}`}
+                <button onClick={() => setActiveScene(i)} className="block w-full text-left">
+                  <div className="relative h-[62px]" style={{ background: gradientFor(i) }}>
+                    <span className="absolute top-[5px] left-[7px] text-[10px] font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,.5)]">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
                   </div>
-                  <div className="mt-0.5 text-[10px] text-stone">{formatDuration(s.durationMs)}</div>
-                </div>
-              </button>
+                  <div className="px-[9px] py-[7px]">
+                    <div className="truncate text-[11.5px] font-semibold">
+                      {(s.content.name as string | undefined) ?? `Scene ${i + 1}`}
+                    </div>
+                    <div className="mt-0.5 text-[10px] text-stone">{formatDuration(s.durationMs)}</div>
+                  </div>
+                </button>
+                <button
+                  onClick={() =>
+                    deleteScene.mutate(
+                      { videoId: video.id, sceneId: s.id },
+                      { onSuccess: () => { setActiveScene(0); flash('Scene deleted'); } },
+                    )
+                  }
+                  aria-label={`Delete scene ${i + 1}`}
+                  className="absolute top-1.5 right-1.5 hidden size-6 items-center justify-center rounded-full bg-ink/60 text-white backdrop-blur-sm group-hover:flex"
+                >
+                  <Trash2 className="size-3" strokeWidth={1.6} />
+                </button>
+              </div>
             ))}
+            <button
+              onClick={() =>
+                createScene.mutate(
+                  { videoId: video.id, content: { name: `Scene ${scenes.length + 1}` } },
+                  { onSuccess: () => { setActiveScene(scenes.length); flash('Scene added'); } },
+                )
+              }
+              disabled={createScene.isPending}
+              className="flex items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-sand bg-paper p-3 text-xs font-semibold text-primary disabled:opacity-60"
+            >
+              <Plus className="size-[15px]" strokeWidth={1.6} /> Add scene
+            </button>
           </div>
         </div>
 
@@ -116,6 +163,18 @@ function EditorContent() {
             <span className="text-xs font-semibold text-stone">
               {video.title} · {video.status}
             </span>
+            {progress && (
+              <span className="flex items-center gap-2 rounded-full border border-line-dark bg-carbon px-3 py-1 text-[11px] font-semibold text-camel">
+                <span className="size-[7px] animate-[sg-pulse_1.2s_infinite] rounded-full bg-camel" />
+                {progress.stage} · {progress.percent}%
+                <span className="relative h-1 w-16 overflow-hidden rounded-full bg-line-dark">
+                  <span
+                    className="absolute inset-y-0 left-0 rounded-full bg-camel transition-[width] duration-500"
+                    style={{ width: `${progress.percent}%` }}
+                  />
+                </span>
+              </span>
+            )}
             <div className="flex-1" />
             <button
               onClick={() => flash('AI rewrite runs via the configured LLM provider on generate')}
@@ -132,6 +191,15 @@ function EditorContent() {
           </div>
           <div className="flex min-h-0 flex-1 items-center justify-center p-6">
             <div className="relative aspect-video w-[min(100%,720px)] overflow-hidden rounded-[14px] border border-line-dark bg-gradient-to-br from-[#3a2f26] to-ink shadow-[0_24px_60px_rgba(0,0,0,.5)]">
+              {isReady && output.data?.media ? (
+                <video
+                  controls
+                  src={output.data.media}
+                  poster={output.data.thumbnail ?? undefined}
+                  className="absolute inset-0 size-full bg-black object-contain"
+                />
+              ) : (
+                <>
               <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_70%_20%,rgba(196,154,108,.22),transparent_60%)]" />
               <div className="absolute bottom-0 left-1/2 flex h-[88%] w-[46%] -translate-x-1/2 items-start justify-center rounded-t-[120px] bg-gradient-to-b from-camel to-primary pt-[22px]">
                 <div className="aspect-square w-[52%] rounded-full bg-gradient-to-br from-shell to-sand shadow-[inset_0_-8px_20px_rgba(122,79,34,.25)]" />
@@ -149,12 +217,27 @@ function EditorContent() {
                   {avatar.name} · {avatar.providerId ?? avatar.kind}
                 </div>
               )}
+                </>
+              )}
             </div>
           </div>
         </div>
 
         <Inspector
           script={script}
+          sceneId={scene?.id ?? null}
+          isSaving={updateScene.isPending}
+          onSaveScript={(nextScript) =>
+            scene &&
+            updateScene.mutate(
+              { videoId: video.id, sceneId: scene.id, content: { script: nextScript } },
+              {
+                onSuccess: () => flash('Script saved'),
+                onError: (error) =>
+                  flash(error instanceof ApiError ? `${error.code}: ${error.message}` : 'Save failed'),
+              },
+            )
+          }
           avatarName={avatar?.name ?? null}
           avatarMeta={avatar ? `${avatar.kind} avatar · ${avatar.providerId ?? 'default provider'}` : ''}
           voiceName={voice?.name ?? null}

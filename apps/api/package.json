@@ -28,6 +28,7 @@
     "@surfgen/core": "workspace:*",
     "@surfgen/db": "workspace:*",
     "@surfgen/events": "workspace:*",
+    "@surfgen/plugin-sdk": "workspace:*",
     "@surfgen/queue": "workspace:*",
     "@surfgen/storage": "workspace:*",
     "@surfgen/telemetry": "workspace:*",

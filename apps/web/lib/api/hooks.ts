@@ -205,6 +205,56 @@ export const useCreateWebhook = () =>
     api('POST', `/v1/orgs/${orgId}/webhooks`, body),
   );
 
+/** Mutation scoped to the workspace's project, invalidating video detail. */
+function useVideoMutation<TArgs>(run: (base: string, args: TArgs) => Promise<unknown>) {
+  const workspace = useWorkspace();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: TArgs & { videoId: string }) => {
+      const scope = workspace.data;
+      if (!scope?.project) throw new Error('no project');
+      return run(`/v1/orgs/${scope.orgId}/projects/${scope.project.id}/videos/${args.videoId}`, args);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['video'] });
+      void queryClient.invalidateQueries({ queryKey: ['workspace'] });
+    },
+  });
+}
+
+export const useCreateScene = () =>
+  useVideoMutation<{ videoId: string; content?: Record<string, unknown> }>((base, args) =>
+    api('POST', `${base}/scenes`, { content: args.content ?? {} }),
+  );
+
+export const useUpdateScene = () =>
+  useVideoMutation<{ videoId: string; sceneId: string; content: Record<string, unknown> }>((base, args) =>
+    api('PATCH', `${base}/scenes/${args.sceneId}`, { content: args.content }),
+  );
+
+export const useDeleteScene = () =>
+  useVideoMutation<{ videoId: string; sceneId: string }>((base, args) =>
+    api('DELETE', `${base}/scenes/${args.sceneId}`),
+  );
+
+/** Signed playback URLs — only fetched once the video is ready. */
+export function useVideoOutput(videoId: string | null, isReady: boolean) {
+  const workspace = useWorkspace();
+  const scope = workspace.data;
+  return useQuery({
+    queryKey: ['video-output', videoId],
+    enabled: !!scope?.project && !!videoId && isReady,
+    staleTime: 10 * 60_000, // signed URLs live 15 min
+    queryFn: async () =>
+      (
+        await api<{ media: string; thumbnail: string | null }>(
+          'GET',
+          `/v1/orgs/${scope!.orgId}/projects/${scope!.project!.id}/videos/${videoId}/output`,
+        )
+      ).data,
+  });
+}
+
 export const useGenerateVideo = () => {
   const workspace = useWorkspace();
   const queryClient = useQueryClient();
