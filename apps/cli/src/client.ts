@@ -1,6 +1,7 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 export interface CliConfig {
   apiUrl: string;
@@ -22,9 +23,12 @@ export function loadConfig(): CliConfig {
 }
 
 export function saveConfig(config: CliConfig): void {
-  mkdirSync(CONFIG_DIR, { recursive: true });
-  writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-  chmodSync(CONFIG_PATH, 0o600); // holds tokens — owner-only
+  // Holds tokens: directory owner-only, file created 0600 and renamed into
+  // place atomically so the restrictive mode applies from the first byte.
+  mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
+  const tempPath = join(CONFIG_DIR, `.config-${randomUUID()}.tmp`);
+  writeFileSync(tempPath, JSON.stringify(config, null, 2), { mode: 0o600 });
+  renameSync(tempPath, CONFIG_PATH);
 }
 
 interface Envelope<T> {

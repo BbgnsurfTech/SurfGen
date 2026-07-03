@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { ApiError, SurfGenClient, loadConfig, saveConfig } from './client.js';
+import { promptHidden } from './prompt.js';
 
 const program = new Command('surfgen')
   .description('SurfGen — provider-agnostic AI video generation')
@@ -35,14 +36,16 @@ const auth = program.command('auth').description('authentication');
 auth
   .command('login')
   .requiredOption('--email <email>')
-  .requiredOption('--password <password>')
-  .action((options: { email: string; password: string }) =>
+  .description('log in — password is prompted (hidden) or read from SURFGEN_PASSWORD; never pass it as a flag')
+  .action((options: { email: string }) =>
     run(async () => {
+      const password = process.env.SURFGEN_PASSWORD ?? (await promptHidden('Password'));
+      if (!password) throw new Error('empty password');
       const config = loadConfig();
       const { data } = await new SurfGenClient(config).request<{
         accessToken: string;
         refreshToken: string;
-      }>('POST', '/v1/auth/login', options);
+      }>('POST', '/v1/auth/login', { email: options.email, password });
       saveConfig({ ...config, accessToken: data.accessToken, refreshToken: data.refreshToken });
       console.error('✓ logged in');
     })(),
@@ -50,10 +53,11 @@ auth
 
 auth
   .command('use-key')
-  .description('authenticate with an API key instead of a login')
-  .argument('<apiKey>')
-  .action((apiKey: string) =>
+  .description('store an API key — prompted (hidden), piped on stdin, or from SURFGEN_API_KEY; never passed as an argument')
+  .action(() =>
     run(async () => {
+      const apiKey = process.env.SURFGEN_API_KEY ?? (await promptHidden('API key'));
+      if (!apiKey) throw new Error('empty API key');
       saveConfig({ ...loadConfig(), apiKey });
       console.error('✓ API key stored');
     })(),
