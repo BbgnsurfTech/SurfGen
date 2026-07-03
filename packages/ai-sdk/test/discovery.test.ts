@@ -3,7 +3,7 @@ import { DEFAULT_HTTP_PROBES, ModelDiscoveryService } from '../src/discovery.js'
 
 /** fetch stub: only the given endpoints respond. */
 function fakeFetch(routes: Record<string, unknown>): typeof fetch {
-  return (async (input: RequestInfo | URL) => {
+  return (async (input: string | URL | Request) => {
     const url = String(input);
     for (const [prefix, body] of Object.entries(routes)) {
       if (url.startsWith(prefix)) {
@@ -40,7 +40,7 @@ describe('ModelDiscoveryService', () => {
     const service = new ModelDiscoveryService({
       httpProbes: [probe],
       cliProbes: [],
-      fetchImpl: (async (input: RequestInfo | URL) => {
+      fetchImpl: (async (input: string | URL | Request) => {
         const url = String(input);
         if (url.endsWith('/api/version')) return new Response('{}', { status: 200 });
         throw new Error('tags endpoint down');

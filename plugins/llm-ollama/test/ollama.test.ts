@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { collectFinalOutput } from '@surfgen/ai-sdk';
 import { OllamaLLMProvider } from '../src/index.js';
 
-const ollamaFetch = (async (input: RequestInfo | URL) => {
+const ollamaFetch = (async (input: string | URL | Request) => {
   const url = String(input);
   if (url.endsWith('/api/version')) return new Response('{"version":"0.9.0"}', { status: 200 });
   if (url.endsWith('/api/chat')) {

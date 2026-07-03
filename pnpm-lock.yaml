@@ -64,7 +64,7 @@ catalogs:
       specifier: ^3.2.4
       version: 3.2.6
     yaml:
-      specifier: ^2.8.0
+      specifier: 2.9.0
       version: 2.9.0
     zod:
       specifier: ^3.25.67
@@ -302,6 +302,39 @@ importers:
         specifier: 'catalog:'
         version: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)
 
+  packages/integration:
+    devDependencies:
+      '@surfgen/ai-sdk':
+        specifier: workspace:*
+        version: link:../ai-sdk
+      '@surfgen/config':
+        specifier: workspace:*
+        version: link:../config
+      '@surfgen/core':
+        specifier: workspace:*
+        version: link:../core
+      '@surfgen/plugin-llm-ollama':
+        specifier: workspace:*
+        version: link:../../plugins/llm-ollama
+      '@surfgen/plugin-llm-openai':
+        specifier: workspace:*
+        version: link:../../plugins/llm-openai
+      '@surfgen/plugin-mock-suite':
+        specifier: workspace:*
+        version: link:../../plugins/mock-suite
+      '@surfgen/plugin-sdk':
+        specifier: workspace:*
+        version: link:../plugin-sdk
+      tsup:
+        specifier: 'catalog:'
+        version: 8.5.1(@swc/core@1.15.43)(jiti@2.7.0)(postcss@8.5.16)(typescript@5.9.3)(yaml@2.9.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.0
+
   packages/plugin-sdk:
     dependencies:
       '@surfgen/ai-sdk':
@@ -406,6 +439,138 @@ importers:
       prom-client:
         specifier: 'catalog:'
         version: 15.1.3
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.6(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))
+      tsup:
+        specifier: 'catalog:'
+        version: 8.5.1(@swc/core@1.15.43)(jiti@2.7.0)(postcss@8.5.16)(typescript@5.9.3)(yaml@2.9.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)
+
+  plugins/llm-ollama:
+    dependencies:
+      '@surfgen/ai-sdk':
+        specifier: workspace:*
+        version: link:../../packages/ai-sdk
+      '@surfgen/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@surfgen/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.6(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))
+      tsup:
+        specifier: 'catalog:'
+        version: 8.5.1(@swc/core@1.15.43)(jiti@2.7.0)(postcss@8.5.16)(typescript@5.9.3)(yaml@2.9.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)
+
+  plugins/llm-openai:
+    dependencies:
+      '@surfgen/ai-sdk':
+        specifier: workspace:*
+        version: link:../../packages/ai-sdk
+      '@surfgen/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@surfgen/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.6(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))
+      tsup:
+        specifier: 'catalog:'
+        version: 8.5.1(@swc/core@1.15.43)(jiti@2.7.0)(postcss@8.5.16)(typescript@5.9.3)(yaml@2.9.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)
+
+  plugins/mock-suite:
+    dependencies:
+      '@surfgen/ai-sdk':
+        specifier: workspace:*
+        version: link:../../packages/ai-sdk
+      '@surfgen/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@surfgen/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.6(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))
+      tsup:
+        specifier: 'catalog:'
+        version: 8.5.1(@swc/core@1.15.43)(jiti@2.7.0)(postcss@8.5.16)(typescript@5.9.3)(yaml@2.9.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)
+
+  plugins/translation-deepl:
+    dependencies:
+      '@surfgen/ai-sdk':
+        specifier: workspace:*
+        version: link:../../packages/ai-sdk
+      '@surfgen/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@surfgen/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.6(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))
+      tsup:
+        specifier: 'catalog:'
+        version: 8.5.1(@swc/core@1.15.43)(jiti@2.7.0)(postcss@8.5.16)(typescript@5.9.3)(yaml@2.9.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)
+
+  plugins/tts-elevenlabs:
+    dependencies:
+      '@surfgen/ai-sdk':
+        specifier: workspace:*
+        version: link:../../packages/ai-sdk
+      '@surfgen/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@surfgen/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.6(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))
+      tsup:
+        specifier: 'catalog:'
+        version: 8.5.1(@swc/core@1.15.43)(jiti@2.7.0)(postcss@8.5.16)(typescript@5.9.3)(yaml@2.9.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)
+
+  plugins/tts-piper:
+    dependencies:
+      '@surfgen/ai-sdk':
+        specifier: workspace:*
+        version: link:../../packages/ai-sdk
+      '@surfgen/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@surfgen/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
     devDependencies:
       '@vitest/coverage-v8':
         specifier: 'catalog:'

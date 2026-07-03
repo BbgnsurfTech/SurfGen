@@ -1,0 +1,26 @@
+{
+  "name": "@surfgen/integration",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cross-package integration tests — provider-swap gate, pipeline e2e",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "build": "echo integration tests have no build",
+    "lint": "eslint test",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@surfgen/ai-sdk": "workspace:*",
+    "@surfgen/config": "workspace:*",
+    "@surfgen/core": "workspace:*",
+    "@surfgen/plugin-llm-ollama": "workspace:*",
+    "@surfgen/plugin-llm-openai": "workspace:*",
+    "@surfgen/plugin-mock-suite": "workspace:*",
+    "@surfgen/plugin-sdk": "workspace:*",
+    "tsup": "catalog:",
+    "vitest": "catalog:",
+    "yaml": "catalog:"
+  }
+}
