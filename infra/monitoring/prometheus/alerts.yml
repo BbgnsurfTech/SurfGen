@@ -1,0 +1,68 @@
+groups:
+  - name: surfgen-pipeline
+    rules:
+      - alert: PipelineFailureRateHigh
+        expr: >
+          sum(rate(surfgen_jobs_processed_total{status="failed"}[10m]))
+            / clamp_min(sum(rate(surfgen_jobs_processed_total[10m])), 1e-9) > 0.05
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: ">5% of pipeline jobs failing over 10m"
+
+      - alert: PipelineStalled
+        expr: sum(rate(surfgen_jobs_processed_total[15m])) == 0 and sum(surfgen_jobs_processed_total) > 0
+        for: 15m
+        labels:
+          severity: page
+        annotations:
+          summary: "No pipeline jobs completing — workers down or queues stuck"
+
+      - alert: JobDurationP95High
+        expr: >
+          histogram_quantile(0.95,
+            sum by (le, stage) (rate(surfgen_job_duration_seconds_bucket[15m]))) > 300
+        for: 15m
+        labels:
+          severity: warn
+        annotations:
+          summary: "Stage {{ $labels.stage }} p95 duration above 5 minutes"
+
+  - name: surfgen-providers
+    rules:
+      - alert: ProviderFailuresSpiking
+        expr: sum by (provider, capability) (rate(surfgen_provider_failures_total[5m])) > 0.2
+        for: 5m
+        labels:
+          severity: warn
+        annotations:
+          summary: "Provider {{ $labels.provider }} ({{ $labels.capability }}) failing — failover chain absorbing load"
+
+      - alert: ProviderLatencyP95High
+        expr: >
+          histogram_quantile(0.95,
+            sum by (le, provider) (rate(surfgen_provider_latency_seconds_bucket[10m]))) > 60
+        for: 10m
+        labels:
+          severity: warn
+        annotations:
+          summary: "Provider {{ $labels.provider }} p95 latency above 60s"
+
+  - name: surfgen-availability
+    rules:
+      - alert: ApiDown
+        expr: up{job="surfgen-api"} == 0
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: "API target not scrapeable"
+
+      - alert: WorkerDown
+        expr: up{job="surfgen-worker"} == 0
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "Worker target not scrapeable"

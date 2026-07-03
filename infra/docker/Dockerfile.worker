@@ -20,3 +20,5 @@ COPY --from=build --chown=surfgen:surfgen /app/config ./config
 USER surfgen
 ENV WORKER_QUEUES=cpu.default,cpu.media,gpu.default,gpu.heavy
 CMD ["node", "dist/main.js"]
+EXPOSE 9464
+HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://127.0.0.1:9464/healthz || exit 1

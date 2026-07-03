@@ -1,3 +1,4 @@
+import { createServer, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { ModelDiscoveryService, ProviderRegistry } from '@surfgen/ai-sdk';
@@ -16,6 +17,31 @@ import { createStageHandlers } from './stages/handlers.js';
 import type { StageJobData, StageRuntime } from './runtime.js';
 
 const logger = createLogger({ service: 'surfgen-worker' });
+
+/** Prometheus scrape endpoint (+ liveness) — workers have no other HTTP surface. */
+function startMetricsServer(metrics: MetricsRegistry, port: number): Server {
+  const server = createServer((req, res) => {
+    if (req.url === '/metrics') {
+      metrics
+        .metricsText()
+        .then((body) => {
+          res.writeHead(200, { 'content-type': 'text/plain; version=0.0.4' });
+          res.end(body);
+        })
+        .catch((error: unknown) => {
+          res.writeHead(500).end(String(error));
+        });
+      return;
+    }
+    if (req.url === '/healthz') {
+      res.writeHead(200, { 'content-type': 'application/json' }).end('{"status":"ok"}');
+      return;
+    }
+    res.writeHead(404).end();
+  });
+  server.listen(port, () => logger.info({ port }, 'metrics server listening'));
+  return server;
+}
 
 function buildStorage(bundle: ConfigBundle): StoragePort {
   if (bundle.storage.driver === 's3' && bundle.storage.s3) {
@@ -40,6 +66,7 @@ async function main(): Promise<void> {
   const prisma = withSoftDelete(createPrismaClient());
   const storage = buildStorage(bundle);
   const metrics = new MetricsRegistry({ service: 'surfgen-worker', defaultMetrics: true });
+  const metricsServer = startMetricsServer(metrics, Number(process.env.METRICS_PORT ?? 9464));
 
   // Event bus: RabbitMQ in real deployments, in-memory for single-process dev.
   const amqpUrl = process.env.AMQP_URL;
@@ -133,6 +160,7 @@ async function main(): Promise<void> {
 
   const shutdown = async () => {
     logger.info('shutting down');
+    metricsServer.close();
     await Promise.allSettled(workers.map((worker) => worker.close()));
     await orchestrator.stop();
     await queue.close();

@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: surfgen
+    folder: SurfGen
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards
