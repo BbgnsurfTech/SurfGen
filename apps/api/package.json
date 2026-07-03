@@ -32,9 +32,11 @@
     "@surfgen/storage": "workspace:*",
     "@surfgen/telemetry": "workspace:*",
     "fastify": "^5.8.5",
+    "ipaddr.js": "^2.4.0",
     "nanoid": "catalog:",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "undici": "^8.6.0",
     "ws": "^8.18.2",
     "zod": "catalog:"
   },

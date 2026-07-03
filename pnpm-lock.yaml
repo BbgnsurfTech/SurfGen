@@ -152,6 +152,9 @@ importers:
       fastify:
         specifier: ^5.8.5
         version: 5.8.5
+      ipaddr.js:
+        specifier: ^2.4.0
+        version: 2.4.0
       nanoid:
         specifier: 'catalog:'
         version: 5.1.16
@@ -161,6 +164,9 @@ importers:
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2
+      undici:
+        specifier: ^8.6.0
+        version: 8.6.0
       ws:
         specifier: ^8.18.2
         version: 8.21.0
@@ -4263,6 +4269,10 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
+  undici@8.6.0:
+    resolution: {integrity: sha512-l2FlC6I510GawyEd1qgcE/okihKrzy+BRTEBlu6T0fdbM9m5yxtIH5Oa3ysRsH0zC4EhmWUEaSDsy2QngBeRlw==}
+    engines: {node: '>=22.19.0'}
+
   universalify@0.1.2:
     resolution: {integrity: sha512-rBJeI5CXAlmy1pV+617WB9J63U6XcazHHF2f2dbJix4XzpUF0RS3Zbj0FGIOCAva5P/d/GBOYaACQ1w+0azUkg==}
     engines: {node: '>= 4.0.0'}
@@ -8107,6 +8117,8 @@ snapshots:
   uint8array-extras@1.5.0: {}
 
   undici-types@6.21.0: {}
+
+  undici@8.6.0: {}
 
   universalify@0.1.2: {}
 
