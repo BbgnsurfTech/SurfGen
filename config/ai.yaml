@@ -1,0 +1,48 @@
+# SurfGen capability routing — which provider chain serves each AI capability.
+# Lower priority number wins; the registry fails over down the chain when a
+# provider is unhealthy. Swap providers here — never in application code.
+capabilities:
+  llm:
+    chain:
+      - provider: llm-ollama
+        priority: 10
+      # - provider: llm-openai        # cloud — requires env:OPENAI_API_KEY
+      #   priority: 5
+      # - provider: llm-anthropic     # cloud — requires env:ANTHROPIC_API_KEY
+      #   priority: 6
+      - provider: llm-mock
+        priority: 100
+  tts:
+    chain:
+      - provider: tts-piper
+        priority: 10
+      # - provider: tts-elevenlabs    # cloud — requires env:ELEVENLABS_API_KEY
+      #   priority: 5
+      - provider: tts-mock
+        priority: 100
+  asr:
+    chain:
+      - provider: asr-whisper
+        priority: 10
+      - provider: asr-mock
+        priority: 100
+  translation:
+    chain:
+      # - provider: translation-deepl # cloud — requires env:DEEPL_API_KEY
+      #   priority: 5
+      - provider: translation-mock
+        priority: 100
+  avatar:
+    chain:
+      # - provider: avatar-heygen     # cloud — requires env:HEYGEN_API_KEY
+      #   priority: 5
+      - provider: avatar-mock
+        priority: 100
+  lipsync:
+    chain:
+      # - provider: lipsync-wav2lip   # docker runner, GPU recommended
+      #   priority: 10
+      - provider: lipsync-mock
+        priority: 100
+routing:
+  preferDeployment: local

@@ -1,0 +1,11 @@
+defaults:
+  resolution: { width: 1920, height: 1080 }
+  frameRate: 30
+  container: mp4
+  codec: h264
+  quality: 23
+limits:
+  maxDurationSeconds: 1800
+  maxConcurrentRendersPerOrg: 10
+watermark:
+  enabled: false

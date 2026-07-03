@@ -1,0 +1,13 @@
+# Model catalog. Entries with autoDiscover are registered by the
+# ModelDiscoveryService when the corresponding local runtime is detected.
+models:
+  - id: llama3.1
+    provider: llm-ollama
+    capability: llm
+    contextWindow: 131072
+    autoDiscover: true
+  - id: en_US-amy-medium
+    provider: tts-piper
+    capability: tts
+    localPath: ./models/piper/en_US-amy-medium.onnx
+    autoDiscover: true

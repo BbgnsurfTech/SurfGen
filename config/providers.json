@@ -1,0 +1,28 @@
+{
+  "providers": [
+    {
+      "id": "llm-ollama",
+      "capability": "llm",
+      "kind": "http",
+      "enabled": true,
+      "priority": 10,
+      "options": { "baseUrl": "http://127.0.0.1:11434", "model": "llama3.1" }
+    },
+    {
+      "id": "tts-piper",
+      "capability": "tts",
+      "kind": "cli",
+      "enabled": true,
+      "priority": 10,
+      "options": { "command": "piper", "modelPath": "./models/piper/en_US-amy-medium.onnx" }
+    },
+    {
+      "id": "asr-whisper",
+      "capability": "asr",
+      "kind": "cli",
+      "enabled": true,
+      "priority": 10,
+      "options": { "command": "whisper", "model": "base" }
+    }
+  ]
+}

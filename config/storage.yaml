@@ -1,0 +1,16 @@
+# Storage backend. Local filesystem by default; switch to any S3-compatible
+# store (MinIO, AWS S3, Cloudflare R2) by changing driver + s3 block.
+driver: local
+local:
+  rootDir: ./storage/local
+# driver: s3
+# s3:
+#   endpoint: http://127.0.0.1:9000     # MinIO in docker-compose
+#   region: us-east-1
+#   bucket: surfgen
+#   accessKeyRef: env:SURFGEN_S3_ACCESS_KEY
+#   secretKeyRef: env:SURFGEN_S3_SECRET_KEY
+#   forcePathStyle: true
+signedUrlTtlSeconds: 900
+# cdn:
+#   baseUrl: https://cdn.example.com
