@@ -1,5 +1,7 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import { Observable, map } from 'rxjs';
+import type { CallHandler, ExecutionContext, NestInterceptor } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import type { Observable } from 'rxjs';
+import { map } from 'rxjs';
 
 interface Envelope {
   success: true;

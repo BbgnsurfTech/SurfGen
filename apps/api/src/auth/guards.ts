@@ -1,6 +1,5 @@
+import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import {
-  CanActivate,
-  ExecutionContext,
   Injectable,
   SetMetadata,
   createParamDecorator,

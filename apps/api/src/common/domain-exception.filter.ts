@@ -1,4 +1,5 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
+import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
+import { Catch, HttpException, HttpStatus } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { isDomainError, type ErrorCode } from '@surfgen/core';
 

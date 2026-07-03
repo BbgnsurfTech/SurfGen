@@ -1,5 +1,12 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": { "noEmit": false, "declaration": false, "sourceMap": true },
-  "include": ["src"]
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": true,
+    "declarationMap": false
+  },
+  "include": [
+    "src"
+  ]
 }

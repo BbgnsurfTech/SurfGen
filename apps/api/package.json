@@ -23,6 +23,7 @@
     "@nestjs/platform-ws": "^11.1.3",
     "@nestjs/swagger": "^11.2.0",
     "@nestjs/websockets": "^11.1.3",
+    "@prisma/client": "^6.19.3",
     "@surfgen/config": "workspace:*",
     "@surfgen/core": "workspace:*",
     "@surfgen/db": "workspace:*",
@@ -30,6 +31,7 @@
     "@surfgen/queue": "workspace:*",
     "@surfgen/storage": "workspace:*",
     "@surfgen/telemetry": "workspace:*",
+    "fastify": "^5.8.5",
     "nanoid": "catalog:",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
@@ -37,11 +39,11 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@swc/core": "^1.12.7",
     "@types/ws": "^8.18.1",
-    "tsup": "catalog:",
-    "vitest": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "tsup": "catalog:",
     "unplugin-swc": "^1.5.4",
-    "@swc/core": "^1.12.7"
+    "vitest": "catalog:"
   }
 }
