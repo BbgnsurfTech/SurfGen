@@ -1,21 +1,122 @@
 @import 'tailwindcss';
 
-/* Placeholder tokens — replaced by the SurfGen.dc.html design system in Phase 5. */
-:root {
-  --color-surface: oklch(15% 0.02 275);
-  --color-surface-raised: oklch(19% 0.025 275);
-  --color-text: oklch(94% 0.01 275);
-  --color-text-muted: oklch(68% 0.02 275);
-  --color-accent: oklch(78% 0.14 190);
-  --color-line: oklch(30% 0.02 275);
+/* SurfGen design system — extracted from SurfGen.dc.html (Claude Design handoff).
+   Warm editorial palette: paper surfaces, espresso ink, camel/bronze brand. */
+@theme {
+  /* surfaces */
+  --color-paper: #faf7f3; /* app background */
+  --color-card: #ffffff;
+  --color-cream: #f4eee6; /* soft fills, chips */
+  --color-line: #e5dbcc; /* light borders */
+  --color-hairline: #f4eee6; /* row dividers */
+
+  /* dark panels (sidebar, canvas, code) */
+  --color-ink: #1a1a1a;
+  --color-espresso: #221e1b;
+  --color-carbon: #2a2420;
+  --color-line-dark: #36302b;
+
+  /* brand */
+  --color-primary: #8b5e2f; /* buttons, active states */
+  --color-camel: #c49a6c; /* accents on dark */
+  --color-bronze: #a67040; /* secondary accent */
+  --color-deep: #7a4f22; /* deep brown clips/icons */
+  --color-shell: #e8d5c0; /* light badge fill */
+  --color-sand: #cfc1ad; /* dashed borders, scrollbar */
+
+  /* text */
+  --color-bark: #4a3f35; /* strong secondary text */
+  --color-taupe: #7a6b5c; /* muted text */
+  --color-stone: #a89684; /* faint text */
+
+  /* status */
+  --color-success: #4f7c3a;
+  --color-warn: #c48a1f;
+  --color-danger: #a8442b;
+  --color-info: #5c7a8b;
+  --color-slate-brown: #524740;
+
+  /* type */
+  --font-display: var(--font-jakarta), 'Plus Jakarta Sans', sans-serif;
+  --font-sans: var(--font-manrope), 'Manrope', system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), 'JetBrains Mono', monospace;
 }
 
-html {
-  background: var(--color-surface);
-  color: var(--color-text);
+html,
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-sand);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 ::selection {
-  background: var(--color-accent);
-  color: var(--color-surface);
+  background: var(--color-camel);
+  color: var(--color-ink);
+}
+
+@keyframes sg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes sg-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes sg-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sg-bar {
+  from {
+    transform: scaleX(0.35);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes sg-flow {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.sg-fade {
+  animation: sg-fade 0.28s ease;
 }
