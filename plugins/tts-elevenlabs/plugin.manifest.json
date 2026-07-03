@@ -1,0 +1,14 @@
+{
+  "name": "tts-elevenlabs",
+  "version": "0.1.0",
+  "description": "Text-to-speech via the ElevenLabs API with voice cloning support",
+  "sdkVersion": "^0.1.0",
+  "license": "Apache-2.0",
+  "capabilities": [
+    "tts"
+  ],
+  "entry": "dist/index.js",
+  "permissions": [
+    "network"
+  ]
+}

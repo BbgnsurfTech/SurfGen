@@ -1,0 +1,14 @@
+{
+  "name": "llm-openai",
+  "version": "0.1.0",
+  "description": "LLM provider backed by the OpenAI Chat Completions API",
+  "sdkVersion": "^0.1.0",
+  "license": "Apache-2.0",
+  "capabilities": [
+    "llm"
+  ],
+  "entry": "dist/index.js",
+  "permissions": [
+    "network"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "llm-ollama",
+  "version": "0.1.0",
+  "description": "LLM provider backed by a local Ollama server",
+  "sdkVersion": "^0.1.0",
+  "license": "Apache-2.0",
+  "capabilities": [
+    "llm"
+  ],
+  "entry": "dist/index.js",
+  "permissions": [
+    "network"
+  ]
+}

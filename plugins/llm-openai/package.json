@@ -1,0 +1,30 @@
+{
+  "name": "@surfgen/plugin-llm-openai",
+  "version": "0.1.0",
+  "description": "LLM provider backed by the OpenAI Chat Completions API",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "plugin.manifest.json"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
+  },
+  "dependencies": {
+    "@surfgen/ai-sdk": "workspace:*",
+    "@surfgen/core": "workspace:*",
+    "@surfgen/plugin-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "catalog:",
+    "vitest": "catalog:",
+    "@vitest/coverage-v8": "catalog:"
+  }
+}

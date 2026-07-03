@@ -8,3 +8,4 @@ export * from './capabilities/speech.js';
 export * from './capabilities/language.js';
 export * from './capabilities/visual.js';
 export * from './testing/mock-provider.js';
+export * from './discovery.js';

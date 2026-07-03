@@ -1,0 +1,15 @@
+{
+  "name": "tts-piper",
+  "version": "0.1.0",
+  "description": "Text-to-speech via the local Piper CLI (ONNX, fully offline)",
+  "sdkVersion": "^0.1.0",
+  "license": "Apache-2.0",
+  "capabilities": [
+    "tts"
+  ],
+  "entry": "dist/index.js",
+  "permissions": [
+    "subprocess",
+    "filesystem"
+  ]
+}

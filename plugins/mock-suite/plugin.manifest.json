@@ -1,0 +1,18 @@
+{
+  "name": "mock-suite",
+  "version": "0.1.0",
+  "description": "Deterministic mock providers for every capability — the zero-credential demo and test path",
+  "sdkVersion": "^0.1.0",
+  "license": "Apache-2.0",
+  "capabilities": [
+    "llm",
+    "tts",
+    "asr",
+    "translation",
+    "avatar",
+    "lipsync",
+    "image_generation"
+  ],
+  "entry": "dist/index.js",
+  "permissions": []
+}

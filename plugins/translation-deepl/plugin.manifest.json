@@ -1,0 +1,14 @@
+{
+  "name": "translation-deepl",
+  "version": "0.1.0",
+  "description": "Translation via the DeepL API",
+  "sdkVersion": "^0.1.0",
+  "license": "Apache-2.0",
+  "capabilities": [
+    "translation"
+  ],
+  "entry": "dist/index.js",
+  "permissions": [
+    "network"
+  ]
+}
