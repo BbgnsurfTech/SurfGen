@@ -1,0 +1,42 @@
+{
+  "name": "@surfgen/telemetry",
+  "version": "0.1.0",
+  "description": "SurfGen observability — pino structured logging, OpenTelemetry, Prometheus metrics",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "pino": "catalog:",
+    "prom-client": "catalog:",
+    "@opentelemetry/api": "catalog:",
+    "@opentelemetry/sdk-node": "catalog:",
+    "@opentelemetry/auto-instrumentations-node": "catalog:",
+    "@opentelemetry/exporter-trace-otlp-http": "catalog:",
+    "@surfgen/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "catalog:",
+    "vitest": "catalog:",
+    "@vitest/coverage-v8": "catalog:"
+  }
+}

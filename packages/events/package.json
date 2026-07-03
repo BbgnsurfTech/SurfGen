@@ -1,0 +1,41 @@
+{
+  "name": "@surfgen/events",
+  "version": "0.1.0",
+  "description": "SurfGen event bus — RabbitMQ publisher/consumer, event envelope, outbox pattern",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "amqplib": "catalog:",
+    "nanoid": "catalog:",
+    "zod": "catalog:",
+    "@surfgen/core": "workspace:*",
+    "@surfgen/telemetry": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "catalog:",
+    "vitest": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@types/amqplib": "catalog:"
+  }
+}
