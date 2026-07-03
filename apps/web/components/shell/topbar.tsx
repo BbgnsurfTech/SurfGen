@@ -1,8 +1,11 @@
 'use client';
 
-import { Plus, Search } from 'lucide-react';
+import { LogIn, LogOut, Plus, Search } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { logout } from '../../lib/api/client';
+import { useAuthed, useHealth } from '../../lib/api/hooks';
 import { useToast } from '../ui/toast';
 import { NewProjectModal } from './new-project-modal';
 
@@ -23,6 +26,9 @@ export function Topbar() {
   const flash = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [crumb, title] = TITLES[pathname] ?? TITLES['/'];
+  const health = useHealth();
+  const authed = useAuthed();
+  const apiUp = health.isSuccess;
 
   return (
     <header className="z-5 flex h-[60px] flex-none items-center gap-4 border-b border-line bg-white/92 px-6 backdrop-blur-xl">
@@ -36,12 +42,38 @@ export function Topbar() {
         <span className="text-[13px]">Search projects, assets…</span>
       </div>
       <button
-        onClick={() => flash('Health check passed — 3 GPUs online, all queues nominal')}
+        onClick={() =>
+          flash(apiUp ? 'API reachable — health check passed' : 'API offline — showing demo data')
+        }
         className="flex h-[38px] items-center gap-[7px] rounded-full border border-line bg-card px-3.5 text-[12.5px] font-semibold text-bark"
       >
-        <span className="size-2 rounded-full bg-success shadow-[0_0_0_3px_rgba(79,124,58,.18)]" />
-        All systems operational
+        <span
+          className={`size-2 rounded-full ${
+            apiUp ? 'bg-success shadow-[0_0_0_3px_rgba(79,124,58,.18)]' : 'bg-warn shadow-[0_0_0_3px_rgba(196,138,31,.18)]'
+          }`}
+        />
+        {apiUp ? 'All systems operational' : 'Offline · demo data'}
       </button>
+      {authed ? (
+        <button
+          onClick={() => {
+            logout();
+            flash('Logged out');
+          }}
+          aria-label="Log out"
+          className="flex size-[38px] items-center justify-center rounded-full border border-line bg-card text-taupe hover:text-bark"
+        >
+          <LogOut className="size-4" strokeWidth={1.6} />
+        </button>
+      ) : (
+        <Link
+          href="/login"
+          aria-label="Log in"
+          className="flex size-[38px] items-center justify-center rounded-full border border-line bg-card text-taupe hover:text-bark"
+        >
+          <LogIn className="size-4" strokeWidth={1.6} />
+        </Link>
+      )}
       <button
         onClick={() => setModalOpen(true)}
         className="flex h-[38px] items-center gap-2 rounded-full bg-primary px-[18px] text-[13px] font-bold text-white shadow-[0_6px_18px_rgba(122,79,34,.22)]"

@@ -1,9 +1,10 @@
 'use client';
 
-import { Clock, Play } from 'lucide-react';
+import { Clock, GitBranch, Play } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import { PROJECTS, STATS, STATUS_COLOR, type ProjectStatus } from '../../lib/demo/projects';
+import { useWorkspaceVideos, type ApiVideo, type VideoStatus } from '../../lib/api/hooks';
+import { PROJECTS, STATS, STATUS_COLOR, THUMBS, type Project, type ProjectStatus } from '../../lib/demo/projects';
 
 const FILTERS = ['All', 'Rendering', 'Drafts'] as const;
 type Filter = (typeof FILTERS)[number];
@@ -14,10 +15,49 @@ const FILTER_STATUS: Record<Filter, ProjectStatus | null> = {
   Drafts: 'Draft',
 };
 
+/** Collapse the API's 8-state machine onto the design's 4 card badges. */
+const API_STATUS: Record<VideoStatus, ProjectStatus> = {
+  draft: 'Draft',
+  queued: 'Queued',
+  generating: 'Rendering',
+  rendering: 'Rendering',
+  post_processing: 'Rendering',
+  ready: 'Ready',
+  failed: 'Draft',
+  cancelled: 'Draft',
+};
+
+function formatDuration(durationMs?: number): string {
+  if (!durationMs) return '—:—';
+  const total = Math.round(durationMs / 1000);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+function relativeTime(iso: string): string {
+  const minutes = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
+  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60 * 24) return `${Math.round(minutes / 60)}h ago`;
+  return `${Math.round(minutes / (60 * 24))}d ago`;
+}
+
+function toCard(video: ApiVideo, index: number): Project {
+  return {
+    title: video.title,
+    status: API_STATUS[video.status] ?? 'Draft',
+    duration: formatDuration(video.output?.durationMs),
+    updated: relativeTime(video.updatedAt),
+    pipeline: `Full pipeline · ${video.language}`,
+    pipeIcon: GitBranch,
+    thumb: THUMBS[index % THUMBS.length] as string,
+  };
+}
+
 export default function DashboardPage() {
   const [filter, setFilter] = useState<Filter>('All');
+  const live = useWorkspaceVideos();
+  const cards = live.data?.length ? live.data.map(toCard) : PROJECTS;
   const wanted = FILTER_STATUS[filter];
-  const visible = wanted ? PROJECTS.filter((p) => p.status === wanted) : PROJECTS;
+  const visible = wanted ? cards.filter((p) => p.status === wanted) : cards;
 
   return (
     <div className="sg-fade px-8 pt-7 pb-12">
@@ -46,7 +86,14 @@ export default function DashboardPage() {
       </div>
 
       <div className="mb-3.5 flex items-center justify-between">
-        <div className="font-display text-base font-bold">Recent projects</div>
+        <div className="font-display text-base font-bold">
+          Recent projects
+          {!live.data?.length && (
+            <span className="ml-2 align-middle rounded-full border border-line bg-cream px-2 py-0.5 text-[10px] font-bold tracking-wide text-taupe uppercase">
+              demo data
+            </span>
+          )}
+        </div>
         <div className="flex gap-1.5">
           {FILTERS.map((f) => (
             <button
