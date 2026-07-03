@@ -1,6 +1,6 @@
 # SurfGen API
 
-Base URL: `http://localhost:3001` (dev) · Versioning: URI (`/v1/...`) · Interactive reference: **`/docs`** (Swagger UI, generated from the running API — always current; this page covers the concepts the generated reference can't).
+Base URL: `http://localhost:4000` (dev) · Versioning: URI (`/v1/...`) · Interactive reference: **`/docs`** (Swagger UI, generated from the running API — always current; this page covers the concepts the generated reference can't).
 
 ## Envelope
 
@@ -36,7 +36,7 @@ Everything is org-scoped: `/v1/orgs/:orgId/...`. Membership role gates access �
 | Videos | `…/projects/:projectId/videos` CRUD | `status` follows the video state machine |
 | Generation | `POST …/videos/:videoId/generate` | creates a `PipelineRun`, publishes `video.queued`; 409 `INVALID_STATE_TRANSITION` if not startable |
 | Cancel | `POST …/videos/:videoId/cancel` | cooperative — workers stop at the next poll |
-| Health | `GET /health` | liveness + dependency summary |
+| Health | `GET /healthz` · `GET /readyz` | liveness; readiness includes dependency checks |
 
 List endpoints use **cursor pagination**: `?cursor=<opaque>&limit=<n>` → `meta.cursor` / `meta.hasMore`. Cursors are opaque; do not parse them.
 
@@ -75,15 +75,15 @@ Per-IP and per-principal limits (stricter on `/v1/auth/*`). `429` responses incl
 ## Curl walkthrough (zero-credential stack)
 
 ```bash
-TOKEN=$(curl -s localhost:3001/v1/auth/login -H 'content-type: application/json' \
+TOKEN=$(curl -s localhost:4000/v1/auth/login -H 'content-type: application/json' \
   -d '{"email":"admin@surfgen.local","password":"<seed output>"}' | jq -r .data.accessToken)
-ORG=$(curl -s localhost:3001/v1/orgs -H "authorization: Bearer $TOKEN" | jq -r '.data[0].id')
-PROJ=$(curl -s localhost:3001/v1/orgs/$ORG/projects -H "authorization: Bearer $TOKEN" \
+ORG=$(curl -s localhost:4000/v1/orgs -H "authorization: Bearer $TOKEN" | jq -r '.data[0].id')
+PROJ=$(curl -s localhost:4000/v1/orgs/$ORG/projects -H "authorization: Bearer $TOKEN" \
   -d '{"name":"demo"}' -H 'content-type: application/json' | jq -r .data.id)
-VID=$(curl -s localhost:3001/v1/orgs/$ORG/projects/$PROJ/videos -H "authorization: Bearer $TOKEN" \
+VID=$(curl -s localhost:4000/v1/orgs/$ORG/projects/$PROJ/videos -H "authorization: Bearer $TOKEN" \
   -d '{"title":"hello","script":"Welcome to SurfGen.","language":"en"}' \
   -H 'content-type: application/json' | jq -r .data.id)
-curl -s -X POST localhost:3001/v1/orgs/$ORG/projects/$PROJ/videos/$VID/generate \
+curl -s -X POST localhost:4000/v1/orgs/$ORG/projects/$PROJ/videos/$VID/generate \
   -H "authorization: Bearer $TOKEN"
 # poll status until completed, then follow data.outputUrl (signed)
 ```
