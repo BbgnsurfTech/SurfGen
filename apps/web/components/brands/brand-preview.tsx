@@ -3,7 +3,7 @@
 import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '../ui/toast';
-import { FONT_VAR, brandCssVars, brandInitials, brandJson, type BrandKit } from '../../lib/demo/brands';
+import { brandCssVars, brandInitials, brandJson, fontVar, type BrandDraft } from '../../lib/brand';
 
 const TABS = [
   ['guideline', 'Guideline'],
@@ -23,17 +23,17 @@ function Heading({ display, children }: { display: string; children: React.React
   );
 }
 
-export function BrandPreview({ brand, onSave }: { brand: BrandKit; onSave: () => void }) {
+export function BrandPreview({ brand, saving, onSave }: { brand: BrandDraft; saving: boolean; onSave: () => void }) {
   const flash = useToast();
   const [tab, setTab] = useState<Tab>('guideline');
-  const displayFont = FONT_VAR[brand.display];
-  const bodyFont = FONT_VAR[brand.body];
+  const displayFont = fontVar(brand.fonts.display);
+  const bodyFont = fontVar(brand.fonts.body);
   const name = brand.name || 'Your Brand';
   const tokens = [
-    { name: 'Primary', hex: brand.primary },
-    { name: 'Secondary', hex: brand.secondary },
-    { name: 'Ink', hex: brand.accent },
-    { name: 'Surface', hex: brand.surface },
+    { name: 'Primary', hex: brand.colors.primary },
+    { name: 'Secondary', hex: brand.colors.secondary },
+    { name: 'Ink', hex: brand.colors.ink },
+    { name: 'Surface', hex: brand.colors.surface },
   ];
   const code = tab === 'css' ? brandCssVars(brand) : brandJson(brand);
 
@@ -56,20 +56,21 @@ export function BrandPreview({ brand, onSave }: { brand: BrandKit; onSave: () =>
         <div className="flex-1" />
         <button
           onClick={onSave}
-          className="flex h-[38px] items-center gap-[7px] rounded-full bg-primary px-5 text-[13px] font-bold text-white shadow-[0_6px_18px_rgba(122,79,34,.22)]"
+          disabled={saving}
+          className="flex h-[38px] items-center gap-[7px] rounded-full bg-primary px-5 text-[13px] font-bold text-white shadow-[0_6px_18px_rgba(122,79,34,.22)] disabled:opacity-60"
         >
-          <Check className="size-4" strokeWidth={2} /> Save brand kit
+          <Check className="size-4" strokeWidth={2} /> {saving ? 'Saving…' : 'Save brand kit'}
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-8 py-7">
         {tab === 'guideline' ? (
           <div className="max-w-[720px]">
-            <div className="rounded-2xl border border-line p-[22px]" style={{ background: brand.surface }}>
+            <div className="rounded-2xl border border-line p-[22px]" style={{ background: brand.colors.surface }}>
               <div className="flex items-center gap-4">
                 <div
                   className="flex size-[54px] flex-none items-center justify-center rounded-[14px] text-xl font-extrabold text-white"
-                  style={{ background: brand.primary, fontFamily: displayFont }}
+                  style={{ background: brand.colors.primary, fontFamily: displayFont }}
                 >
                   {brandInitials(name)}
                 </div>
@@ -104,7 +105,7 @@ export function BrandPreview({ brand, onSave }: { brand: BrandKit; onSave: () =>
                 <br />
                 into digital reality
               </div>
-              <div className="mt-1.5 text-[11px] text-stone">Display · {brand.display}</div>
+              <div className="mt-1.5 text-[11px] text-stone">Display · {brand.fonts.display}</div>
               <div
                 className="mt-[18px] max-w-[520px] text-[15px] leading-[1.6] text-bark"
                 style={{ fontFamily: bodyFont }}
@@ -112,29 +113,29 @@ export function BrandPreview({ brand, onSave }: { brand: BrandKit; onSave: () =>
                 Empowering businesses with innovative cross-platform mobile apps and data solutions. This body copy
                 renders live in your chosen brand typeface.
               </div>
-              <div className="mt-1.5 text-[11px] text-stone">Body · {brand.body}</div>
+              <div className="mt-1.5 text-[11px] text-stone">Body · {brand.fonts.body}</div>
             </div>
 
             <Heading display={displayFont}>Components</Heading>
             <div className="flex flex-wrap items-center gap-3.5 rounded-2xl border border-line bg-card p-6">
               <button
                 className="inline-flex h-10 items-center gap-[7px] rounded-full px-5 text-[13px] font-bold text-white"
-                style={{ background: brand.primary, fontFamily: bodyFont }}
+                style={{ background: brand.colors.primary, fontFamily: bodyFont }}
               >
                 Get Started
               </button>
               <button
                 className="inline-flex h-10 items-center gap-[7px] rounded-full bg-transparent px-5 text-[13px] font-bold"
-                style={{ color: brand.primary, border: `1.5px solid ${brand.primary}`, fontFamily: bodyFont }}
+                style={{ color: brand.colors.primary, border: `1.5px solid ${brand.colors.primary}`, fontFamily: bodyFont }}
               >
                 Learn More
               </button>
               <span
                 className="rounded-full px-3.5 py-1.5 text-xs font-bold"
                 style={{
-                  color: brand.primary,
-                  background: brand.surface,
-                  border: `1px solid ${brand.secondary}`,
+                  color: brand.colors.primary,
+                  background: brand.colors.surface,
+                  border: `1px solid ${brand.colors.secondary}`,
                   fontFamily: bodyFont,
                 }}
               >

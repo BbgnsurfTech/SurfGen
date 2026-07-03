@@ -92,8 +92,9 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-5 text-center text-[11.5px] text-stone">
-          No stack running? <a href="/" className="font-semibold text-camel">Continue with demo data</a>
+        <div className="mt-5 text-center text-[11.5px] leading-relaxed text-stone">
+          Stack not running yet? Start it with <span className="font-mono text-camel">./scripts/install.sh</span> —
+          the seed prints the admin credentials.
         </div>
       </div>
     </main>

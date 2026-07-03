@@ -26,7 +26,15 @@ function AssetRow({ icon, title, meta }: { icon: React.ReactNode; title: string;
   );
 }
 
-export function Inspector() {
+export interface InspectorProps {
+  script: string;
+  avatarName: string | null;
+  avatarMeta: string;
+  voiceName: string | null;
+  voiceMeta: string;
+}
+
+export function Inspector({ script, avatarName, avatarMeta, voiceName, voiceMeta }: InspectorProps) {
   const flash = useToast();
   const [tab, setTab] = useState<(typeof TABS)[number]>('Script');
   const [emotion, setEmotion] = useState<(typeof EMOTIONS)[number]>('Warm');
@@ -49,18 +57,17 @@ export function Inspector() {
       <div className="flex-1 overflow-y-auto p-4">
         <SectionLabel first>SCRIPT</SectionLabel>
         <div className="rounded-xl border border-line bg-paper p-3 text-[13px] leading-relaxed text-bark">
-          Welcome to BBGNSURF — turning your vision into digital reality.
-          <span className="ml-px inline-block h-[15px] w-0.5 translate-y-[3px] animate-[sg-pulse_1s_infinite] bg-primary" />
+          {script || <span className="text-stone">No script on this scene yet.</span>}
         </div>
         <div className="mt-2.5 flex gap-2">
           <button
-            onClick={() => flash('Script enhanced with the configured LLM provider')}
+            onClick={() => flash('Enhance runs through the configured LLM provider on generate')}
             className="flex h-[34px] flex-1 items-center justify-center gap-1.5 rounded-full bg-primary text-xs font-bold text-white"
           >
             <Sparkles className="size-3.5" strokeWidth={1.6} /> Enhance
           </button>
           <button
-            onClick={() => flash('Translation drawer — 200 languages via NLLB / DeepL')}
+            onClick={() => flash('Translation runs in the pipeline (NLLB / DeepL by config)')}
             aria-label="Translate script"
             className="flex size-[34px] items-center justify-center rounded-full border border-line bg-cream text-primary"
           >
@@ -69,22 +76,34 @@ export function Inspector() {
         </div>
 
         <SectionLabel>AVATAR</SectionLabel>
-        <AssetRow
-          icon={<div className="size-10 flex-none rounded-[10px] bg-gradient-to-br from-camel to-primary" />}
-          title="Amara — Studio"
-          meta="Photo avatar · v3"
-        />
+        {avatarName ? (
+          <AssetRow
+            icon={<div className="size-10 flex-none rounded-[10px] bg-gradient-to-br from-camel to-primary" />}
+            title={avatarName}
+            meta={avatarMeta}
+          />
+        ) : (
+          <div className="rounded-xl border border-dashed border-sand bg-paper p-3 text-[11.5px] text-stone">
+            No avatar assigned — pick one in Avatar &amp; Voice.
+          </div>
+        )}
 
         <SectionLabel>VOICE</SectionLabel>
-        <AssetRow
-          icon={
-            <div className="flex size-10 flex-none items-center justify-center rounded-[10px] bg-cream text-primary">
-              <AudioLines className="size-[18px]" strokeWidth={1.6} />
-            </div>
-          }
-          title="Amara Clone"
-          meta="XTTS · en-NG · warm"
-        />
+        {voiceName ? (
+          <AssetRow
+            icon={
+              <div className="flex size-10 flex-none items-center justify-center rounded-[10px] bg-cream text-primary">
+                <AudioLines className="size-[18px]" strokeWidth={1.6} />
+              </div>
+            }
+            title={voiceName}
+            meta={voiceMeta}
+          />
+        ) : (
+          <div className="rounded-xl border border-dashed border-sand bg-paper p-3 text-[11.5px] text-stone">
+            No voice assigned — the pipeline uses the configured default chain.
+          </div>
+        )}
 
         <SectionLabel>EMOTION</SectionLabel>
         <div className="flex flex-wrap gap-1.5">

@@ -43,7 +43,7 @@ export function Topbar() {
       </div>
       <button
         onClick={() =>
-          flash(apiUp ? 'API reachable — health check passed' : 'API offline — showing demo data')
+          flash(apiUp ? 'API reachable — health check passed' : 'API unreachable — start the stack (scripts/install.sh)')
         }
         className="flex h-[38px] items-center gap-[7px] rounded-full border border-line bg-card px-3.5 text-[12.5px] font-semibold text-bark"
       >
@@ -52,7 +52,7 @@ export function Topbar() {
             apiUp ? 'bg-success shadow-[0_0_0_3px_rgba(79,124,58,.18)]' : 'bg-warn shadow-[0_0_0_3px_rgba(196,138,31,.18)]'
           }`}
         />
-        {apiUp ? 'All systems operational' : 'Offline · demo data'}
+        {apiUp ? 'All systems operational' : 'API offline'}
       </button>
       {authed ? (
         <button

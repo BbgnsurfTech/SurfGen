@@ -1,31 +1,35 @@
 'use client';
 
-import { Clock, GitBranch, Play } from 'lucide-react';
+import { Clock, Cpu, Film, GitBranch, Layers, Play } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useWorkspaceVideos, type ApiVideo, type VideoStatus } from '../../lib/api/hooks';
-import { PROJECTS, STATS, STATUS_COLOR, THUMBS, type Project, type ProjectStatus } from '../../lib/demo/projects';
+import { useStats, useWorkspace } from '../../lib/api/hooks';
+import type { VideoStatus } from '../../lib/api/types';
+import { EmptyState, LoadingState, gradientFor } from '../../components/ui/states';
 
-const FILTERS = ['All', 'Rendering', 'Drafts'] as const;
-type Filter = (typeof FILTERS)[number];
+type Badge = 'Rendering' | 'Ready' | 'Draft' | 'Queued' | 'Failed';
 
-const FILTER_STATUS: Record<Filter, ProjectStatus | null> = {
-  All: null,
-  Rendering: 'Rendering',
-  Drafts: 'Draft',
-};
-
-/** Collapse the API's 8-state machine onto the design's 4 card badges. */
-const API_STATUS: Record<VideoStatus, ProjectStatus> = {
+const BADGE: Record<VideoStatus, Badge> = {
   draft: 'Draft',
   queued: 'Queued',
   generating: 'Rendering',
   rendering: 'Rendering',
   post_processing: 'Rendering',
   ready: 'Ready',
-  failed: 'Draft',
+  failed: 'Failed',
   cancelled: 'Draft',
 };
+
+const BADGE_COLOR: Record<Badge, string> = {
+  Rendering: '#C48A1F',
+  Ready: '#4F7C3A',
+  Draft: '#7A6B5C',
+  Queued: '#5C7A8B',
+  Failed: '#A8442B',
+};
+
+const FILTERS = ['All', 'Rendering', 'Drafts'] as const;
+type Filter = (typeof FILTERS)[number];
 
 function formatDuration(durationMs?: number): string {
   if (!durationMs) return '—:—';
@@ -40,29 +44,34 @@ function relativeTime(iso: string): string {
   return `${Math.round(minutes / (60 * 24))}d ago`;
 }
 
-function toCard(video: ApiVideo, index: number): Project {
-  return {
-    title: video.title,
-    status: API_STATUS[video.status] ?? 'Draft',
-    duration: formatDuration(video.output?.durationMs),
-    updated: relativeTime(video.updatedAt),
-    pipeline: `Full pipeline · ${video.language}`,
-    pipeIcon: GitBranch,
-    thumb: THUMBS[index % THUMBS.length] as string,
-  };
-}
-
 export default function DashboardPage() {
   const [filter, setFilter] = useState<Filter>('All');
-  const live = useWorkspaceVideos();
-  const cards = live.data?.length ? live.data.map(toCard) : PROJECTS;
-  const wanted = FILTER_STATUS[filter];
-  const visible = wanted ? cards.filter((p) => p.status === wanted) : cards;
+  const stats = useStats();
+  const workspace = useWorkspace();
+
+  const statCards = [
+    { icon: Film, value: stats.data?.videosTotal ?? '—', label: 'Videos total', sub: `${stats.data?.videosReady ?? 0} ready` },
+    {
+      icon: Clock,
+      value: stats.data?.avgRenderMinutes != null ? `${stats.data.avgRenderMinutes.toFixed(1)} min` : '—',
+      label: 'Avg render time',
+      sub: 'last 50 runs',
+    },
+    { icon: Cpu, value: stats.data?.jobsInFlight ?? '—', label: 'Jobs in flight', sub: 'queued + active' },
+    { icon: Layers, value: stats.data?.workflowsActive ?? '—', label: 'Active workflows', sub: 'enabled' },
+  ];
+
+  const videos = workspace.data?.videos ?? [];
+  const visible = videos.filter((video) => {
+    if (filter === 'All') return true;
+    if (filter === 'Rendering') return BADGE[video.status] === 'Rendering' || BADGE[video.status] === 'Queued';
+    return BADGE[video.status] === 'Draft';
+  });
 
   return (
     <div className="sg-fade px-8 pt-7 pb-12">
       <div className="mb-7 grid grid-cols-4 gap-4">
-        {STATS.map((stat) => (
+        {statCards.map((stat) => (
           <div
             key={stat.label}
             className="rounded-2xl border border-line bg-card px-5 py-[18px] shadow-[0_1px_2px_rgba(26,26,26,.04)]"
@@ -71,13 +80,7 @@ export default function DashboardPage() {
               <div className="flex size-[34px] items-center justify-center rounded-[10px] bg-cream text-primary">
                 <stat.icon className="size-[18px]" strokeWidth={1.6} />
               </div>
-              <span
-                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                  stat.up ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
-                }`}
-              >
-                {stat.delta}
-              </span>
+              <span className="rounded-full bg-cream px-2 py-0.5 text-[11px] font-bold text-taupe">{stat.sub}</span>
             </div>
             <div className="font-display mt-3.5 text-[28px] leading-none font-extrabold text-ink">{stat.value}</div>
             <div className="mt-1 text-[12.5px] text-taupe">{stat.label}</div>
@@ -87,10 +90,10 @@ export default function DashboardPage() {
 
       <div className="mb-3.5 flex items-center justify-between">
         <div className="font-display text-base font-bold">
-          Recent projects
-          {!live.data?.length && (
-            <span className="ml-2 align-middle rounded-full border border-line bg-cream px-2 py-0.5 text-[10px] font-bold tracking-wide text-taupe uppercase">
-              demo data
+          Recent videos
+          {workspace.data?.project && (
+            <span className="ml-2 align-middle text-xs font-semibold text-stone">
+              {workspace.data.project.name}
             </span>
           )}
         </div>
@@ -109,41 +112,57 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-[18px]">
-        {visible.map((project) => (
-          <Link
-            key={project.title}
-            href="/editor"
-            className="overflow-hidden rounded-2xl border border-line bg-card shadow-[0_1px_2px_rgba(26,26,26,.04)] transition-[transform,box-shadow] duration-200 hover:-translate-y-[3px] hover:shadow-[0_16px_40px_rgba(122,79,34,.14)]"
-          >
-            <div className="relative h-[118px]" style={{ background: project.thumb }}>
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% to-ink/55" />
-              <span
-                className="absolute top-2.5 left-2.5 inline-flex items-center gap-[5px] rounded-full bg-white/92 px-[9px] py-[3px] text-[10.5px] font-bold"
-                style={{ color: STATUS_COLOR[project.status] }}
+      {workspace.isPending ? (
+        <LoadingState label="Loading workspace…" />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          title={videos.length === 0 ? 'No videos yet' : `No ${filter.toLowerCase()} videos`}
+          hint={
+            videos.length === 0
+              ? 'Create your first video from the New Project button, the editor, or the CLI: surfgen videos create --title hello --generate'
+              : 'Try another filter.'
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-4 gap-[18px]">
+          {visible.map((video, index) => {
+            const badge = BADGE[video.status];
+            return (
+              <Link
+                key={video.id}
+                href={`/editor?video=${video.id}`}
+                className="overflow-hidden rounded-2xl border border-line bg-card shadow-[0_1px_2px_rgba(26,26,26,.04)] transition-[transform,box-shadow] duration-200 hover:-translate-y-[3px] hover:shadow-[0_16px_40px_rgba(122,79,34,.14)]"
               >
-                <span className="size-1.5 rounded-full" style={{ background: STATUS_COLOR[project.status] }} />
-                {project.status}
-              </span>
-              <div className="absolute bottom-[11px] left-3 flex items-center gap-1.5 text-[11px] font-semibold text-white">
-                <Clock className="size-[13px]" strokeWidth={1.6} />
-                {project.duration}
-              </div>
-              <div className="absolute right-3 bottom-2.5 flex size-[30px] items-center justify-center rounded-full bg-white/92 text-primary">
-                <Play className="size-[15px]" strokeWidth={1.6} />
-              </div>
-            </div>
-            <div className="px-[15px] pt-[13px] pb-[15px]">
-              <div className="font-display truncate text-sm font-bold">{project.title}</div>
-              <div className="mt-2 flex items-center gap-[7px] text-[11px] text-taupe">
-                <project.pipeIcon className="size-[13px] text-bronze" strokeWidth={1.6} />
-                {project.pipeline}
-                <span className="ml-auto">{project.updated}</span>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
+                <div className="relative h-[118px]" style={{ background: gradientFor(index) }}>
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% to-ink/55" />
+                  <span
+                    className="absolute top-2.5 left-2.5 inline-flex items-center gap-[5px] rounded-full bg-white/92 px-[9px] py-[3px] text-[10.5px] font-bold"
+                    style={{ color: BADGE_COLOR[badge] }}
+                  >
+                    <span className="size-1.5 rounded-full" style={{ background: BADGE_COLOR[badge] }} />
+                    {badge}
+                  </span>
+                  <div className="absolute bottom-[11px] left-3 flex items-center gap-1.5 text-[11px] font-semibold text-white">
+                    <Clock className="size-[13px]" strokeWidth={1.6} />
+                    {formatDuration(video.output?.durationMs)}
+                  </div>
+                  <div className="absolute right-3 bottom-2.5 flex size-[30px] items-center justify-center rounded-full bg-white/92 text-primary">
+                    <Play className="size-[15px]" strokeWidth={1.6} />
+                  </div>
+                </div>
+                <div className="px-[15px] pt-[13px] pb-[15px]">
+                  <div className="font-display truncate text-sm font-bold">{video.title}</div>
+                  <div className="mt-2 flex items-center gap-[7px] text-[11px] text-taupe">
+                    <GitBranch className="size-[13px] text-bronze" strokeWidth={1.6} />
+                    Full pipeline · {video.language}
+                    <span className="ml-auto">{relativeTime(video.updatedAt)}</span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

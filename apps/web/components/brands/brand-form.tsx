@@ -2,20 +2,22 @@
 
 import { ArrowLeft, Globe, ImageUp, Loader, Sparkles } from 'lucide-react';
 import { useToast } from '../ui/toast';
-import { BRAND_FONTS, FONT_VAR, type BrandFont, type BrandKit } from '../../lib/demo/brands';
+import { BRAND_FONTS, fontVar, type BrandDraft } from '../../lib/brand';
 
 interface BrandFormProps {
-  brand: BrandKit;
+  brand: BrandDraft;
+  url: string;
   extracting: boolean;
-  onChange: <K extends keyof BrandKit>(key: K, value: BrandKit[K]) => void;
+  onUrl: (url: string) => void;
+  onChange: (update: Partial<BrandDraft>) => void;
   onExtract: () => void;
   onBack: () => void;
 }
 
-const COLOR_FIELDS: Array<{ key: 'primary' | 'secondary' | 'accent' | 'surface'; label: string; hint: string }> = [
+const COLOR_FIELDS: Array<{ key: keyof BrandDraft['colors']; label: string; hint: string }> = [
   { key: 'primary', label: 'Primary', hint: 'Buttons, links, brand presence' },
   { key: 'secondary', label: 'Secondary', hint: 'Accents, highlights' },
-  { key: 'accent', label: 'Ink / Dark', hint: 'Text, footers' },
+  { key: 'ink', label: 'Ink / Dark', hint: 'Text, footers' },
   { key: 'surface', label: 'Surface', hint: 'Soft backgrounds' },
 ];
 
@@ -24,26 +26,24 @@ function Label({ children }: { children: React.ReactNode }) {
 }
 
 function FontPicker({
-  options,
   value,
   weight,
   onPick,
 }: {
-  options: readonly BrandFont[];
-  value: BrandFont;
+  value: string;
   weight: number;
-  onPick: (font: BrandFont) => void;
+  onPick: (font: string) => void;
 }) {
   return (
     <div className="grid grid-cols-2 gap-2">
-      {options.map((font) => (
+      {BRAND_FONTS.map((font) => (
         <button
           key={font}
           onClick={() => onPick(font)}
           className={`rounded-[10px] px-3 py-2 text-left text-[13px] text-ink ${
             value === font ? 'border-[1.5px] border-primary bg-paper' : 'border border-line bg-card'
           }`}
-          style={{ fontFamily: FONT_VAR[font], fontWeight: weight }}
+          style={{ fontFamily: fontVar(font), fontWeight: weight }}
         >
           {font}
         </button>
@@ -52,7 +52,7 @@ function FontPicker({
   );
 }
 
-export function BrandForm({ brand, extracting, onChange, onExtract, onBack }: BrandFormProps) {
+export function BrandForm({ brand, url, extracting, onUrl, onChange, onExtract, onBack }: BrandFormProps) {
   const flash = useToast();
   return (
     <div className="w-[400px] flex-none overflow-y-auto border-r border-line bg-card px-6 py-[22px]">
@@ -67,15 +67,16 @@ export function BrandForm({ brand, extracting, onChange, onExtract, onBack }: Br
       <div className="mb-2 flex h-10 items-center gap-2 rounded-[11px] border border-line bg-paper px-[13px]">
         <Globe className="size-[15px] text-primary" strokeWidth={1.6} />
         <input
-          value={brand.url}
-          onChange={(event) => onChange('url', event.target.value)}
+          value={url}
+          onChange={(event) => onUrl(event.target.value)}
           placeholder="yourbrand.com"
           className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-stone"
         />
       </div>
       <button
         onClick={onExtract}
-        className="flex h-10 w-full items-center justify-center gap-2 rounded-[11px] bg-ink text-[13px] font-bold text-white"
+        disabled={extracting}
+        className="flex h-10 w-full items-center justify-center gap-2 rounded-[11px] bg-ink text-[13px] font-bold text-white disabled:opacity-70"
       >
         {extracting ? (
           <Loader className="size-[15px] animate-[sg-spin_.8s_linear_infinite]" strokeWidth={1.6} />
@@ -85,8 +86,8 @@ export function BrandForm({ brand, extracting, onChange, onExtract, onBack }: Br
         {extracting ? 'Analysing…' : 'Generate from site'}
       </button>
       <div className="mt-2 text-[11px] leading-[1.45] text-stone">
-        SurfGen scans the site&apos;s CSS &amp; meta to pull its palette, fonts and logo. Everything stays editable
-        below.
+        The API fetches the public site and pulls its palette from the page&apos;s CSS and theme-color meta.
+        Everything stays editable below.
       </div>
 
       <div className="my-[22px] h-px bg-hairline" />
@@ -94,14 +95,14 @@ export function BrandForm({ brand, extracting, onChange, onExtract, onBack }: Br
       <Label>BRAND NAME</Label>
       <input
         value={brand.name}
-        onChange={(event) => onChange('name', event.target.value)}
+        onChange={(event) => onChange({ name: event.target.value })}
         placeholder="e.g. BBGNSURF Core"
         className="mb-[22px] h-10 w-full rounded-[11px] border border-line bg-paper px-[13px] text-[13px] text-ink outline-none placeholder:text-stone"
       />
 
       <Label>LOGO</Label>
       <button
-        onClick={() => flash('Logo uploaded')}
+        onClick={() => flash('Logo upload lands with asset storage wiring')}
         className="mb-[22px] flex w-full items-center gap-[13px] rounded-xl border-[1.5px] border-dashed border-sand bg-paper p-3.5"
       >
         <div className="flex size-11 flex-none items-center justify-center rounded-[10px] border border-line bg-card text-primary">
@@ -119,12 +120,12 @@ export function BrandForm({ brand, extracting, onChange, onExtract, onBack }: Br
           <div key={field.key} className="flex items-center gap-3 rounded-xl border border-line p-2">
             <label
               className="relative size-10 flex-none cursor-pointer overflow-hidden rounded-[10px] border border-black/12"
-              style={{ background: brand[field.key] }}
+              style={{ background: brand.colors[field.key] }}
             >
               <input
                 type="color"
-                value={brand[field.key]}
-                onChange={(event) => onChange(field.key, event.target.value)}
+                value={brand.colors[field.key]}
+                onChange={(event) => onChange({ colors: { ...brand.colors, [field.key]: event.target.value } })}
                 aria-label={`${field.label} colour`}
                 className="absolute -inset-1 h-[150%] w-[150%] cursor-pointer border-none p-0"
               />
@@ -133,17 +134,25 @@ export function BrandForm({ brand, extracting, onChange, onExtract, onBack }: Br
               <div className="text-[13px] font-semibold">{field.label}</div>
               <div className="text-[10.5px] text-stone">{field.hint}</div>
             </div>
-            <span className="font-mono text-[11.5px] text-taupe uppercase">{brand[field.key]}</span>
+            <span className="font-mono text-[11.5px] text-taupe uppercase">{brand.colors[field.key]}</span>
           </div>
         ))}
       </div>
 
       <Label>DISPLAY FONT</Label>
       <div className="mb-[18px]">
-        <FontPicker options={BRAND_FONTS} value={brand.display} weight={700} onPick={(f) => onChange('display', f)} />
+        <FontPicker
+          value={brand.fonts.display}
+          weight={700}
+          onPick={(font) => onChange({ fonts: { ...brand.fonts, display: font } })}
+        />
       </div>
       <Label>BODY FONT</Label>
-      <FontPicker options={BRAND_FONTS} value={brand.body} weight={600} onPick={(f) => onChange('body', f)} />
+      <FontPicker
+        value={brand.fonts.body}
+        weight={600}
+        onPick={(font) => onChange({ fonts: { ...brand.fonts, body: font } })}
+      />
     </div>
   );
 }

@@ -99,6 +99,18 @@ export class BrandsWorkflowsController {
     });
   }
 
+  // Records the run request; standalone workflow execution lands with the
+  // orchestrator's declarative-workflow support (video pipelines already run).
+  @Post('workflows/:workflowId/runs')
+  @RequireOrgRole('editor')
+  async queueRun(@Param('orgId') orgId: string, @Param('workflowId') workflowId: string) {
+    const workflow = await this.prisma.workflow.findFirst({ where: { id: workflowId, organizationId: orgId } });
+    if (!workflow) throw new NotFoundError('Workflow', workflowId);
+    return this.prisma.workflowRun.create({
+      data: { workflowId, status: 'pending', input: {} },
+    });
+  }
+
   @Patch('workflows/:workflowId')
   @RequireOrgRole('editor')
   async updateWorkflow(

@@ -9,6 +9,7 @@ import { EnvelopeInterceptor } from './common/envelope.interceptor';
 import { PrismaService } from './common/prisma.service';
 import { HealthController } from './health/health.controller';
 import { AdminController } from './workspace/admin.controller';
+import { BrandExtractController } from './workspace/brand-extract.controller';
 import { BrandsWorkflowsController } from './workspace/brands-workflows.controller';
 import { DeveloperController } from './workspace/developer.controller';
 import { LibraryController } from './workspace/library.controller';
@@ -48,6 +49,7 @@ const eventBusProvider = {
     VideosController,
     LibraryController,
     BrandsWorkflowsController,
+    BrandExtractController,
     AdminController,
     DeveloperController,
     StatsController,
