@@ -1,0 +1,47 @@
+{
+  "name": "@surfgen/api",
+  "version": "0.1.0",
+  "description": "SurfGen API gateway — REST, OpenAPI, WebSockets, webhooks",
+  "license": "Apache-2.0",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "node --watch -r ts-node/register src/main.ts",
+    "start": "node dist/main.js",
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
+  },
+  "dependencies": {
+    "@fastify/helmet": "^13.0.1",
+    "@fastify/rate-limit": "^10.3.0",
+    "@nestjs/common": "^11.1.3",
+    "@nestjs/core": "^11.1.3",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/platform-fastify": "^11.1.3",
+    "@nestjs/platform-ws": "^11.1.3",
+    "@nestjs/swagger": "^11.2.0",
+    "@nestjs/websockets": "^11.1.3",
+    "@surfgen/config": "workspace:*",
+    "@surfgen/core": "workspace:*",
+    "@surfgen/db": "workspace:*",
+    "@surfgen/events": "workspace:*",
+    "@surfgen/queue": "workspace:*",
+    "@surfgen/storage": "workspace:*",
+    "@surfgen/telemetry": "workspace:*",
+    "nanoid": "catalog:",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "ws": "^8.18.2",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1",
+    "tsup": "catalog:",
+    "vitest": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "unplugin-swc": "^1.5.4",
+    "@swc/core": "^1.12.7"
+  }
+}

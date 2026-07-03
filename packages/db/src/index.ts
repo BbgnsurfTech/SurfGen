@@ -18,10 +18,6 @@ export function createPrismaClient(options: CreateClientOptions = {}): PrismaCli
   });
 }
 
-/**
- * Soft-delete guard: extend queries on soft-deletable models to exclude
- * deleted rows unless explicitly requested.
- */
 export const SOFT_DELETABLE_MODELS = [
   'User',
   'Organization',
@@ -35,24 +31,60 @@ export const SOFT_DELETABLE_MODELS = [
   'Workflow',
 ] as const;
 
-export function withSoftDelete(client: PrismaClient): PrismaClient {
-  return client.$extends({
-    query: {
-      $allModels: {
-        async findMany({ model, args, query }) {
-          if ((SOFT_DELETABLE_MODELS as readonly string[]).includes(model)) {
-            args.where = { deletedAt: null, ...args.where };
-          }
-          return query(args);
-        },
-        async findFirst({ model, args, query }) {
-          if ((SOFT_DELETABLE_MODELS as readonly string[]).includes(model)) {
-            args.where = { deletedAt: null, ...args.where };
-          }
-          return query(args);
-        },
-      },
-    },
-  }) as unknown as PrismaClient;
+type WhereArgs = { where?: Record<string, unknown> };
+
+/**
+ * Merge the deletedAt guard as an AND term so caller predicates can never
+ * clobber it. A caller that explicitly filters on deletedAt (e.g. an admin
+ * "show deleted" view) opts out by naming the field itself.
+ */
+function guardWhere(args: WhereArgs): void {
+  const where = args.where ?? {};
+  if ('deletedAt' in where) return; // explicit caller intent wins
+  args.where = { AND: [{ deletedAt: null }, where] };
 }
-export * from "./outbox-store.js";
+
+const GUARDED_OPERATIONS = [
+  'findMany',
+  'findFirst',
+  'findFirstOrThrow',
+  'findUnique',
+  'findUniqueOrThrow',
+  'count',
+  'aggregate',
+  'groupBy',
+  'update',
+  'updateMany',
+  'delete',
+  'deleteMany',
+] as const;
+
+/**
+ * Soft-delete guard covering reads AND writes: soft-deleted rows are invisible
+ * to queries and immune to updates/deletes unless the caller explicitly
+ * filters on deletedAt. Relies on Prisma's extended-where-unique (GA ≥5.0)
+ * for the unique-input operations.
+ */
+export function withSoftDelete(client: PrismaClient): PrismaClient {
+  const handlers = Object.fromEntries(
+    GUARDED_OPERATIONS.map((operation) => [
+      operation,
+      async ({
+        model,
+        args,
+        query,
+      }: {
+        model: string;
+        args: WhereArgs;
+        query: (args: WhereArgs) => Promise<unknown>;
+      }) => {
+        if ((SOFT_DELETABLE_MODELS as readonly string[]).includes(model)) {
+          guardWhere(args);
+        }
+        return query(args);
+      },
+    ]),
+  );
+  return client.$extends({ query: { $allModels: handlers } }) as unknown as PrismaClient;
+}
+export * from './outbox-store.js';

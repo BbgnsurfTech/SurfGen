@@ -8,6 +8,11 @@ import { PrismaClient } from '@prisma/client';
 
 const client = new PrismaClient();
 
+// Dev-only tool: seeded credentials must never reach a production database.
+if (process.env.NODE_ENV === 'production') {
+  throw new Error('Refusing to seed: NODE_ENV=production');
+}
+
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString('hex');
   const hash = scryptSync(password, salt, 64).toString('hex');
@@ -15,7 +20,8 @@ function hashPassword(password: string): string {
 }
 
 async function main(): Promise<void> {
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'surfgen-dev-password';
+  // No fixed fallback — generate a random password when none is provided.
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? randomBytes(12).toString('base64url');
 
   const user = await client.user.upsert({
     where: { email: 'admin@surfgen.local' },
@@ -105,13 +111,17 @@ async function main(): Promise<void> {
       name: 'Dev key (seeded)',
       keyHash: createHash('sha256').update(apiKeyPlain).digest('hex'),
       keyPrefix: apiKeyPlain.slice(0, 10),
-      scopes: ['*'],
+      scopes: ['videos:read', 'videos:write', 'assets:read', 'assets:write'],
     },
   });
 
-  console.warn(`Seed complete.
+  if (process.stdout.isTTY || process.env.SEED_PRINT_SECRETS === '1') {
+    console.warn(`Seed complete.
   login:   admin@surfgen.local / ${adminPassword}
   api key: ${apiKeyPlain} (shown once — stored hashed)`);
+  } else {
+    console.warn('Seed complete. Set SEED_PRINT_SECRETS=1 (or run in a TTY) to display credentials.');
+  }
 }
 
 main()
