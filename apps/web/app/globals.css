@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+
+/* Placeholder tokens — replaced by the SurfGen.dc.html design system in Phase 5. */
+:root {
+  --color-surface: oklch(15% 0.02 275);
+  --color-surface-raised: oklch(19% 0.025 275);
+  --color-text: oklch(94% 0.01 275);
+  --color-text-muted: oklch(68% 0.02 275);
+  --color-accent: oklch(78% 0.14 190);
+  --color-line: oklch(30% 0.02 275);
+}
+
+html {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-surface);
+}
