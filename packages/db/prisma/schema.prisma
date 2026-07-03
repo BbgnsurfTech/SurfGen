@@ -85,6 +85,7 @@ model Organization {
   voices          Voice[]
   workflows       Workflow[]
   webhooks        Webhook[]
+  brandKits       BrandKit[]
   usageRecords    UsageRecord[]
   quotas          Quota[]
   billingAccount  BillingAccount?
@@ -316,6 +317,27 @@ model Asset {
   clips        TimelineClip[]
 
   @@index([organizationId, kind])
+}
+
+model BrandKit {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  /// Source website when generated ("manual" otherwise).
+  sourceUrl      String?
+  /// { primary, secondary, ink, surface } hex values.
+  colors         Json
+  /// { display, body } font family names.
+  fonts          Json
+  /// Storage key of the uploaded logo, when present.
+  logoKey        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
 }
 
 model Template {

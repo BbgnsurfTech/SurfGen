@@ -8,6 +8,11 @@ import { DomainExceptionFilter } from './common/domain-exception.filter';
 import { EnvelopeInterceptor } from './common/envelope.interceptor';
 import { PrismaService } from './common/prisma.service';
 import { HealthController } from './health/health.controller';
+import { AdminController } from './workspace/admin.controller';
+import { BrandsWorkflowsController } from './workspace/brands-workflows.controller';
+import { DeveloperController } from './workspace/developer.controller';
+import { LibraryController } from './workspace/library.controller';
+import { StatsController } from './workspace/stats.controller';
 import { OrgsController } from './orgs/orgs.controller';
 import { ProjectsController } from './projects/projects.controller';
 import { VideosController } from './videos/videos.controller';
@@ -36,7 +41,17 @@ const eventBusProvider = {
 
 @Module({
   imports: [AuthModule],
-  controllers: [HealthController, OrgsController, ProjectsController, VideosController],
+  controllers: [
+    HealthController,
+    OrgsController,
+    ProjectsController,
+    VideosController,
+    LibraryController,
+    BrandsWorkflowsController,
+    AdminController,
+    DeveloperController,
+    StatsController,
+  ],
   providers: [
     PrismaService,
     VideosService,

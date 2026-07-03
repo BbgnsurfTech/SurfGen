@@ -82,7 +82,13 @@ export class VideosService {
   async get(orgId: string, videoId: string) {
     const video = await this.prisma.video.findFirst({
       where: { id: videoId, organizationId: orgId, deletedAt: null },
-      include: { scenes: { orderBy: { order: 'asc' } }, pipelineRuns: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      include: {
+        scenes: {
+          orderBy: { order: 'asc' },
+          include: { tracks: { orderBy: { order: 'asc' }, include: { clips: { orderBy: { startMs: 'asc' } } } } },
+        },
+        pipelineRuns: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
     });
     if (!video) throw new NotFoundError('Video', videoId);
     return video;

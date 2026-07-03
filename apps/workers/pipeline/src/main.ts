@@ -107,6 +107,26 @@ async function main(): Promise<void> {
     logger.warn({ dir: failure.dir, error: failure.error.message }, 'plugin failed to load');
   }
 
+  // Self-register loaded plugins so the API/UI plugin registry reflects what
+  // this deployment actually runs (manifests are the validated on-disk truth).
+  for (const plugin of loaded) {
+    const manifest = plugin.manifest;
+    try {
+      await prisma.plugin.upsert({
+        where: { name: manifest.name },
+        create: {
+          name: manifest.name,
+          version: manifest.version,
+          description: manifest.description ?? '',
+          manifest: manifest as unknown as object,
+        },
+        update: { version: manifest.version, manifest: manifest as unknown as object },
+      });
+    } catch (error) {
+      logger.warn({ plugin: manifest.name, error: String(error) }, 'plugin registry upsert failed');
+    }
+  }
+
   const discovered = await new ModelDiscoveryService().discover();
   logger.info({ runtimes: discovered.map((r) => r.id) }, 'local runtimes discovered');
 

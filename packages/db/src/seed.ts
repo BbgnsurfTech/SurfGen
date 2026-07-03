@@ -115,6 +115,48 @@ async function main(): Promise<void> {
     },
   });
 
+  const existingKit = await client.brandKit.findFirst({
+    where: { organizationId: org.id, name: 'SurfGen Default' },
+  });
+  if (!existingKit) {
+    await client.brandKit.create({
+      data: {
+        organizationId: org.id,
+        name: 'SurfGen Default',
+        sourceUrl: 'manual',
+        colors: { primary: '#8B5E2F', secondary: '#C49A6C', ink: '#1A1A1A', surface: '#FAF7F3' },
+        fonts: { display: 'Plus Jakarta Sans', body: 'Manrope' },
+      },
+    });
+  }
+
+  const existingWorkflow = await client.workflow.findFirst({
+    where: { organizationId: org.id, name: 'Script → Avatar video' },
+  });
+  if (!existingWorkflow) {
+    await client.workflow.create({
+      data: {
+        organizationId: org.id,
+        name: 'Script → Avatar video',
+        definition: {
+          nodes: [
+            { id: 'script', kind: 'script', label: 'Script', x: 60, y: 70 },
+            { id: 'enhance', kind: 'llm', label: 'LLM Enhance', x: 300, y: 70 },
+            { id: 'tts', kind: 'tts', label: 'Voice', x: 300, y: 220 },
+            { id: 'avatar', kind: 'avatar', label: 'Avatar + Lip-sync', x: 540, y: 220 },
+            { id: 'render', kind: 'render', label: 'Render', x: 780, y: 145 },
+          ],
+          edges: [
+            { from: 'script', to: 'enhance' },
+            { from: 'enhance', to: 'tts' },
+            { from: 'tts', to: 'avatar' },
+            { from: 'avatar', to: 'render' },
+          ],
+        },
+      },
+    });
+  }
+
   if (process.stdout.isTTY || process.env.SEED_PRINT_SECRETS === '1') {
     console.warn(`Seed complete.
   login:   admin@surfgen.local / ${adminPassword}
