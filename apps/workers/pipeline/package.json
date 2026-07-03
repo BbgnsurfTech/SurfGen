@@ -1,0 +1,37 @@
+{
+  "name": "@surfgen/worker-pipeline",
+  "version": "0.1.0",
+  "description": "SurfGen pipeline workers — orchestrator, AI stages, ffmpeg media stages",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsup",
+    "dev": "node --watch dist/main.js",
+    "start": "node dist/main.js",
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@surfgen/ai-sdk": "workspace:*",
+    "@surfgen/config": "workspace:*",
+    "@surfgen/core": "workspace:*",
+    "@surfgen/db": "workspace:*",
+    "@surfgen/events": "workspace:*",
+    "@surfgen/plugin-sdk": "workspace:*",
+    "@surfgen/queue": "workspace:*",
+    "@surfgen/storage": "workspace:*",
+    "@surfgen/telemetry": "workspace:*",
+    "@prisma/client": "^6.11.0",
+    "bullmq": "catalog:",
+    "ioredis": "catalog:",
+    "nanoid": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "tsup": "catalog:",
+    "vitest": "catalog:",
+    "@vitest/coverage-v8": "catalog:"
+  }
+}

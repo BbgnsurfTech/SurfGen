@@ -187,6 +187,61 @@ importers:
         specifier: 'catalog:'
         version: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)
 
+  apps/workers/pipeline:
+    dependencies:
+      '@prisma/client':
+        specifier: ^6.11.0
+        version: 6.19.3(prisma@6.19.3(magicast@0.3.5)(typescript@5.9.3))(typescript@5.9.3)
+      '@surfgen/ai-sdk':
+        specifier: workspace:*
+        version: link:../../../packages/ai-sdk
+      '@surfgen/config':
+        specifier: workspace:*
+        version: link:../../../packages/config
+      '@surfgen/core':
+        specifier: workspace:*
+        version: link:../../../packages/core
+      '@surfgen/db':
+        specifier: workspace:*
+        version: link:../../../packages/db
+      '@surfgen/events':
+        specifier: workspace:*
+        version: link:../../../packages/events
+      '@surfgen/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-sdk
+      '@surfgen/queue':
+        specifier: workspace:*
+        version: link:../../../packages/queue
+      '@surfgen/storage':
+        specifier: workspace:*
+        version: link:../../../packages/storage
+      '@surfgen/telemetry':
+        specifier: workspace:*
+        version: link:../../../packages/telemetry
+      bullmq:
+        specifier: 'catalog:'
+        version: 5.79.2
+      ioredis:
+        specifier: 'catalog:'
+        version: 5.11.1
+      nanoid:
+        specifier: 'catalog:'
+        version: 5.1.16
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.6(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))
+      tsup:
+        specifier: 'catalog:'
+        version: 8.5.1(@swc/core@1.15.43)(jiti@2.7.0)(postcss@8.5.16)(typescript@5.9.3)(yaml@2.9.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)
+
   packages/ai-sdk:
     dependencies:
       '@surfgen/core':
