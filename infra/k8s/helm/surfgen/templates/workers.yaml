@@ -1,0 +1,93 @@
+{{- range .Values.workerPools }}
+{{- $pool := . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "surfgen.fullname" $ }}-worker-{{ $pool.name }}
+  labels:
+    {{- include "surfgen.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: worker-{{ $pool.name }}
+spec:
+  {{- if not $pool.autoscaling.enabled }}
+  replicas: {{ $pool.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+      app.kubernetes.io/component: worker-{{ $pool.name }}
+  template:
+    metadata:
+      labels:
+        {{- include "surfgen.labels" $ | nindent 8 }}
+        app.kubernetes.io/component: worker-{{ $pool.name }}
+      annotations:
+        checksum/config: {{ $.Values.config.files | toYaml | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "surfgen.serviceAccountName" $ }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 60
+      {{- with $pool.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $pool.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: worker
+          image: {{ include "surfgen.image" (dict "root" $ "component" "worker") }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: {{ $.Values.metrics.workerPort }}
+          env:
+            - name: WORKER_QUEUES
+              value: {{ $pool.queues | quote }}
+            - name: METRICS_PORT
+              value: {{ $.Values.metrics.workerPort | quote }}
+            - name: SURFGEN_CONFIG_DIR
+              value: {{ $.Values.config.mountPath }}
+            {{- include "surfgen.sharedEnv" $ | nindent 12 }}
+          envFrom:
+            - secretRef:
+                name: {{ $.Values.existingSecret }}
+          livenessProbe:
+            httpGet: { path: /healthz, port: metrics }
+            initialDelaySeconds: 15
+          resources:
+            {{- toYaml $pool.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: {{ $.Values.config.mountPath }}
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "surfgen.fullname" $ }}-config
+{{- if $pool.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "surfgen.fullname" $ }}-worker-{{ $pool.name }}
+  labels:
+    {{- include "surfgen.labels" $ | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "surfgen.fullname" $ }}-worker-{{ $pool.name }}
+  minReplicas: {{ $pool.autoscaling.minReplicas }}
+  maxReplicas: {{ $pool.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $pool.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+---
+{{- end }}

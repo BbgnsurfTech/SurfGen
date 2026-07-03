@@ -114,3 +114,22 @@ jobs:
           push: false
           cache-from: type=gha,scope=worker
           cache-to: type=gha,scope=worker,mode=max
+
+      - name: Build web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile.web
+          push: false
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Lint chart
+        run: helm lint infra/k8s/helm/surfgen
+      - name: Render templates (default values)
+        run: helm template surfgen infra/k8s/helm/surfgen > /dev/null

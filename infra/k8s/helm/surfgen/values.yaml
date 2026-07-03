@@ -1,0 +1,117 @@
+# SurfGen Helm values.
+#
+# External dependencies (managed services or separate charts — NOT bundled here):
+# PostgreSQL, Redis, RabbitMQ, S3-compatible object storage.
+# Provide their endpoints via `existingSecret` (see below).
+
+image:
+  registry: ghcr.io/surfgen
+  tag: "" # defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+# Secret with keys: DATABASE_URL, AMQP_URL, JWT_SECRET,
+# SURFGEN_S3_ACCESS_KEY, SURFGEN_S3_SECRET_KEY. Create it out-of-band
+# (sealed-secrets / external-secrets recommended); never inline secrets in values.
+existingSecret: surfgen-secrets
+
+env:
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  SURFGEN_STORAGE__DRIVER: s3
+  SURFGEN_STORAGE__BUCKET: surfgen
+  # SURFGEN_STORAGE__ENDPOINT: http://minio:9000   # set for non-AWS S3
+  # OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger-collector:4318
+
+# config/*.yaml shipped as a ConfigMap and mounted at /app/config.
+# Keys mirror the repo config/ directory; override per environment to swap
+# AI providers with zero image changes (the headline feature).
+config:
+  mountPath: /app/config
+  files: {}
+  # files:
+  #   ai.yaml: |
+  #     capabilities:
+  #       tts:
+  #         chain: [tts-elevenlabs, tts-piper, mock-tts]
+
+api:
+  replicas: 2
+  port: 4000
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+web:
+  enabled: true
+  replicas: 2
+  port: 3000
+  publicApiUrl: https://api.surfgen.example.com
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+# One Deployment per pool — this is how CPU and GPU fleets scale independently.
+# A cluster with no GPUs simply removes the gpu pool and routes gpu capabilities
+# to cloud providers in config/ai.yaml.
+workerPools:
+  - name: cpu
+    queues: cpu.default,cpu.media,io.webhooks,io.analytics
+    replicas: 2
+    resources:
+      requests: { cpu: "1", memory: 2Gi }
+      limits: { cpu: "2", memory: 4Gi }
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 20
+      targetCPUUtilizationPercentage: 75
+    nodeSelector: {}
+    tolerations: []
+  - name: gpu
+    queues: gpu.default,gpu.heavy
+    replicas: 0 # enable when the cluster has GPU nodes
+    resources:
+      requests: { cpu: "2", memory: 8Gi }
+      limits: { cpu: "4", memory: 16Gi, nvidia.com/gpu: "1" }
+    autoscaling:
+      enabled: false
+    nodeSelector:
+      nvidia.com/gpu.present: "true"
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+
+migrate:
+  # prisma migrate deploy as a pre-install/pre-upgrade hook Job.
+  enabled: true
+
+metrics:
+  # Set true if the cluster runs Prometheus Operator (creates ServiceMonitors).
+  serviceMonitor: false
+  workerPort: 9464
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: app.surfgen.example.com
+      service: web
+    - host: api.surfgen.example.com
+      service: api
+  tls: []
+
+serviceAccount:
+  create: true
+  annotations: {} # e.g. IRSA role for S3 access
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000

@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "surfgen.fullname" . }}-config
+  labels:
+    {{- include "surfgen.labels" . | nindent 4 }}
+data:
+  {{- range $name, $content := .Values.config.files }}
+  {{ $name }}: |
+    {{- $content | nindent 4 }}
+  {{- end }}
+{{- if .Values.serviceAccount.create }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "surfgen.serviceAccountName" . }}
+  labels:
+    {{- include "surfgen.labels" . | nindent 4 }}
+  {{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

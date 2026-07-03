@@ -1,0 +1,32 @@
+{{- if .Values.migrate.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "surfgen.fullname" . }}-migrate
+  labels:
+    {{- include "surfgen.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "surfgen.labels" . | nindent 8 }}
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "surfgen.serviceAccountName" . }}
+      containers:
+        - name: migrate
+          # The api image ships the prisma schema + client; migrate deploy is idempotent.
+          image: {{ include "surfgen.image" (dict "root" . "component" "api") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["node", "node_modules/prisma/build/index.js", "migrate", "deploy", "--schema", "packages/db/prisma/schema.prisma"]
+          envFrom:
+            - secretRef:
+                name: {{ .Values.existingSecret }}
+{{- end }}
