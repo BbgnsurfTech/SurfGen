@@ -1,0 +1,84 @@
+# SurfGen development stack — infrastructure only.
+# App processes (api, web, workers) run on the host via `pnpm dev` for fast
+# iteration. Use docker-compose.full.yml to containerize everything.
+name: surfgen-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: surfgen
+      POSTGRES_PASSWORD: surfgen-dev
+      POSTGRES_DB: surfgen
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U surfgen"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: surfgen
+      RABBITMQ_DEFAULT_PASS: surfgen-dev
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # management UI
+    volumes:
+      - rabbitdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: surfgen
+      MINIO_ROOT_PASSWORD: surfgen-dev
+    ports:
+      - "9000:9000"
+      - "9001:9001"   # console
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  createbucket:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 surfgen surfgen-dev &&
+      mc mb --ignore-existing local/surfgen &&
+      exit 0"
+
+volumes:
+  pgdata:
+  redisdata:
+  rabbitdata:
+  miniodata:

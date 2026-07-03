@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1.7
+FROM node:22-alpine AS base
+RUN corepack enable
+WORKDIR /app
+
+FROM base AS deps
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/api/package.json apps/api/
+COPY packages ./packages
+COPY plugins ./plugins
+RUN find packages plugins -type d \( -name src -o -name test \) -prune -exec rm -rf {} + 2>/dev/null; \
+    pnpm install --frozen-lockfile --ignore-scripts
+
+FROM base AS build
+COPY . .
+RUN pnpm install --frozen-lockfile && \
+    pnpm --filter @surfgen/db generate && \
+    pnpm turbo build --filter=@surfgen/api
+
+FROM node:22-alpine AS runtime
+RUN addgroup -S surfgen && adduser -S surfgen -G surfgen
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build --chown=surfgen:surfgen /app/apps/api/dist ./dist
+COPY --from=build --chown=surfgen:surfgen /app/node_modules ./node_modules
+COPY --from=build --chown=surfgen:surfgen /app/packages ./packages
+COPY --from=build --chown=surfgen:surfgen /app/config ./config
+USER surfgen
+EXPOSE 4000
+HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://127.0.0.1:4000/healthz || exit 1
+CMD ["node", "dist/main.js"]

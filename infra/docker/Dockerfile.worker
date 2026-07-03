@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1.7
+FROM node:22-alpine AS build
+RUN corepack enable && apk add --no-cache python3 make g++
+WORKDIR /app
+COPY . .
+RUN pnpm install --frozen-lockfile && \
+    pnpm --filter @surfgen/db generate && \
+    pnpm turbo build --filter=@surfgen/worker-pipeline
+
+FROM node:22-alpine AS runtime
+# ffmpeg is the reference local render engine; piper installable via models dir.
+RUN apk add --no-cache ffmpeg && addgroup -S surfgen && adduser -S surfgen -G surfgen
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build --chown=surfgen:surfgen /app/apps/workers/pipeline/dist ./dist
+COPY --from=build --chown=surfgen:surfgen /app/node_modules ./node_modules
+COPY --from=build --chown=surfgen:surfgen /app/packages ./packages
+COPY --from=build --chown=surfgen:surfgen /app/plugins ./plugins
+COPY --from=build --chown=surfgen:surfgen /app/config ./config
+USER surfgen
+ENV WORKER_QUEUES=cpu.default,cpu.media,gpu.default,gpu.heavy
+CMD ["node", "dist/main.js"]
