@@ -14,6 +14,7 @@ import { MetricsRegistry, createLogger, initTracing } from '@surfgen/telemetry';
 import type { Worker } from 'bullmq';
 import { PipelineOrchestrator } from './orchestrator.js';
 import { createStageHandlers } from './stages/handlers.js';
+import { createWebhookDispatcher } from './webhooks.js';
 import type { StageJobData, StageRuntime } from './runtime.js';
 
 const logger = createLogger({ service: 'surfgen-worker' });
@@ -160,6 +161,11 @@ async function main(): Promise<void> {
   });
   await orchestrator.start();
 
+  // Webhook fan-out: org-scoped domain events → registered webhook endpoints
+  // (HMAC-signed, SSRF-pinned, idempotent per (webhookId, eventId)).
+  const webhookDispatcher = createWebhookDispatcher({ prisma, logger });
+  const webhookSubscription = await webhookDispatcher.start(bus);
+
   // Stage workers — WORKER_QUEUES selects the resource classes this pod serves.
   const queueNames = (process.env.WORKER_QUEUES ?? 'cpu.default,cpu.media,gpu.default,gpu.heavy')
     .split(',')
@@ -186,6 +192,7 @@ async function main(): Promise<void> {
     logger.info('shutting down');
     metricsServer.close();
     await Promise.allSettled(workers.map((worker) => worker.close()));
+    await webhookSubscription.unsubscribe();
     await orchestrator.stop();
     await queue.close();
     if (bus instanceof RabbitMqEventBus) await bus.close();

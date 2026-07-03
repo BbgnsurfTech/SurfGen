@@ -14,6 +14,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@prisma/client": "^6.11.0",
     "@surfgen/ai-sdk": "workspace:*",
     "@surfgen/config": "workspace:*",
     "@surfgen/core": "workspace:*",
@@ -21,17 +22,17 @@
     "@surfgen/events": "workspace:*",
     "@surfgen/plugin-sdk": "workspace:*",
     "@surfgen/queue": "workspace:*",
+    "@surfgen/safe-net": "workspace:*",
     "@surfgen/storage": "workspace:*",
     "@surfgen/telemetry": "workspace:*",
-    "@prisma/client": "^6.11.0",
     "bullmq": "catalog:",
     "ioredis": "catalog:",
     "nanoid": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "catalog:",
     "tsup": "catalog:",
-    "vitest": "catalog:",
-    "@vitest/coverage-v8": "catalog:"
+    "vitest": "catalog:"
   }
 }

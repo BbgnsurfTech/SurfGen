@@ -14,6 +14,7 @@
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.0.2",
     "@fastify/helmet": "^13.0.1",
     "@fastify/rate-limit": "^10.3.0",
     "@nestjs/common": "^11.1.3",
@@ -30,14 +31,13 @@
     "@surfgen/events": "workspace:*",
     "@surfgen/plugin-sdk": "workspace:*",
     "@surfgen/queue": "workspace:*",
+    "@surfgen/safe-net": "workspace:*",
     "@surfgen/storage": "workspace:*",
     "@surfgen/telemetry": "workspace:*",
     "fastify": "^5.8.5",
-    "ipaddr.js": "^2.4.0",
     "nanoid": "catalog:",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "undici": "^8.6.0",
     "ws": "^8.18.2",
     "zod": "catalog:"
   },

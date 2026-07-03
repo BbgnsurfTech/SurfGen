@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { API_URL, api, loadTokens } from './client';
+import { API_URL, api, isAuthed } from './client';
 import type {
   ApiKey,
   Avatar,
@@ -20,18 +20,14 @@ import type {
   Workflow,
 } from './types';
 
-/** Reactive "is a token present" — updates on login/logout in this or other tabs. */
+/** Reactive "is a session held" — the access token lives in memory only. */
 export function useAuthed(): boolean {
   const [authed, setAuthed] = useState<boolean | null>(null);
   useEffect(() => {
-    const sync = () => setAuthed(loadTokens() !== null);
+    const sync = () => setAuthed(isAuthed());
     sync();
     window.addEventListener('surfgen:auth', sync);
-    window.addEventListener('storage', sync);
-    return () => {
-      window.removeEventListener('surfgen:auth', sync);
-      window.removeEventListener('storage', sync);
-    };
+    return () => window.removeEventListener('surfgen:auth', sync);
   }, []);
   return authed === true;
 }

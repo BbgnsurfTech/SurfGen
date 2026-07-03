@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { isPublicUnicast } from '../src/workspace/brand-extract.controller';
+import { assertSafeUrl, isPublicUnicast } from '../src/index.js';
+import { ValidationError } from '@surfgen/core';
 
 describe('isPublicUnicast (SSRF guard)', () => {
   test.each([
@@ -37,4 +38,27 @@ describe('isPublicUnicast (SSRF guard)', () => {
       expect(isPublicUnicast(address)).toBe(true);
     },
   );
+});
+
+describe('assertSafeUrl (outbound URL policy)', () => {
+  test.each([
+    'ftp://example.com/file',
+    'file:///etc/passwd',
+    'gopher://example.com',
+    'https://example.com:8443/hook', // non-default port
+    'http://example.com:4000/hook',
+    'https://user:pass@example.com/hook', // embedded credentials
+    'not a url',
+  ])('rejects %s', (url) => {
+    expect(() => assertSafeUrl(url)).toThrow(ValidationError);
+  });
+
+  test.each([
+    'https://example.com/hooks/surfgen',
+    'http://example.com/hook',
+    'https://example.com:443/hook',
+    'http://example.com:80/hook',
+  ])('allows %s', (url) => {
+    expect(assertSafeUrl(url)).toBeInstanceOf(URL);
+  });
 });

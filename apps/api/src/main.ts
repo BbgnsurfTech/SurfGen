@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { createLogger, initTracing } from '@surfgen/telemetry';
@@ -21,6 +22,7 @@ async function bootstrap(): Promise<void> {
   );
 
   await app.register(helmet, { contentSecurityPolicy: false }); // API responses are JSON; CSP is set by the web app
+  await app.register(cookie); // httpOnly refresh-token cookie for browser sessions
   await app.register(rateLimit, {
     max: Number(process.env.RATE_LIMIT_MAX ?? 300),
     timeWindow: '1 minute',

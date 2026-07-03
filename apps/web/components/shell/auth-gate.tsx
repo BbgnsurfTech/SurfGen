@@ -2,24 +2,32 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { loadTokens } from '../../lib/api/client';
+import { ensureSession, isAuthed } from '../../lib/api/client';
 
 /**
  * Everything inside the studio is real, org-scoped data — there is no
- * unauthenticated mode. Redirects to /login until a token pair exists.
+ * unauthenticated mode. On mount, restores the session via the httpOnly
+ * refresh cookie (one silent refresh); redirects to /login when that fails
+ * or the session later dies.
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const check = () => {
-      if (loadTokens()) setReady(true);
+    let cancelled = false;
+    const sync = () => {
+      if (isAuthed()) setReady(true);
       else router.replace('/login');
     };
-    check();
-    window.addEventListener('surfgen:auth', check);
-    return () => window.removeEventListener('surfgen:auth', check);
+    void ensureSession().then(() => {
+      if (!cancelled) sync();
+    });
+    window.addEventListener('surfgen:auth', sync);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('surfgen:auth', sync);
+    };
   }, [router]);
 
   if (!ready) {

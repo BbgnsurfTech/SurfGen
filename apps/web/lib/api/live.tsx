@@ -2,7 +2,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useRef } from 'react';
-import { API_URL, loadTokens } from './client';
+import { API_URL, getAccessToken } from './client';
 import { useAuthed } from './hooks';
 
 export interface LiveEvent {
@@ -51,7 +51,7 @@ export function LiveEventsProvider({ children }: { children: React.ReactNode }) 
       socket = new WebSocket(`${wsUrl}/ws`);
       socket.onopen = () => {
         // Nest WsAdapter message shape: { event, data }.
-        socket?.send(JSON.stringify({ event: 'auth', data: { token: loadTokens()?.accessToken ?? '' } }));
+        socket?.send(JSON.stringify({ event: 'auth', data: { token: getAccessToken() ?? '' } }));
       };
       socket.onmessage = (message) => {
         let parsed: { type?: string; name?: string; payload?: LiveEvent['payload']; occurredAt?: string };
