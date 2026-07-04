@@ -18,6 +18,10 @@ x-app-env: &app-env
   REDIS_PORT: "6379"
   AMQP_URL: amqp://surfgen:${RABBITMQ_PASSWORD:-surfgen-dev}@rabbitmq:5672
   JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+  # Set COOKIE_SECURE=false ONLY for plain-http trials (e.g. http://<ip>:3000)
+  # — browsers reject Secure cookies over http on non-localhost hosts.
+  COOKIE_SECURE: ${COOKIE_SECURE:-}
+  CORS_ORIGINS: ${CORS_ORIGINS:-}
   SURFGEN_S3_ACCESS_KEY: ${MINIO_USER:-surfgen}
   SURFGEN_S3_SECRET_KEY: ${MINIO_PASSWORD:-surfgen-dev}
   SURFGEN_STORAGE__DRIVER: s3
@@ -158,6 +162,9 @@ services:
     build:
       context: ../..
       dockerfile: infra/docker/Dockerfile.web
+      args:
+        # Baked into the client bundle — must be reachable from the browser.
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:4000}
     environment:
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:4000}
     ports:

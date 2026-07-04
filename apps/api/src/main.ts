@@ -30,7 +30,12 @@ async function bootstrap(): Promise<void> {
 
   app.useWebSocketAdapter(new WsAdapter(app));
   app.enableVersioning({ type: VersioningType.URI, prefix: 'v' });
-  app.enableCors({ origin: process.env.CORS_ORIGINS?.split(',') ?? true, credentials: true });
+  // Empty/unset CORS_ORIGINS reflects any origin (dev/trial); set a
+  // comma-separated allowlist in production.
+  app.enableCors({
+    origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : true,
+    credentials: true,
+  });
   app.enableShutdownHooks();
 
   const openApiConfig = new DocumentBuilder()

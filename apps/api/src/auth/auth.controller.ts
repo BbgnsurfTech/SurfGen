@@ -32,10 +32,14 @@ const REFRESH_COOKIE_MAX_AGE_SECONDS = 30 * 24 * 3600; // mirror REFRESH_TOKEN_T
  * Everything else stays Authorization-header (in-memory access token).
  */
 function refreshCookieOptions() {
+  // COOKIE_SECURE (when set, non-empty) wins over the NODE_ENV default —
+  // "false" enables plain-http trials on a raw IP, where browsers reject
+  // Secure cookies; anything served over https should leave it unset/true.
+  const explicit = process.env.COOKIE_SECURE;
   return {
     httpOnly: true,
     sameSite: 'strict' as const,
-    secure: process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE === 'true',
+    secure: explicit ? explicit === 'true' : process.env.NODE_ENV === 'production',
     path: '/v1/auth',
     maxAge: REFRESH_COOKIE_MAX_AGE_SECONDS,
   };
