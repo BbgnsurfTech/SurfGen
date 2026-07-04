@@ -5,11 +5,13 @@ import {
   ChevronsUpDown,
   Clapperboard,
   Code,
+  CreditCard,
   Gauge,
   LayoutDashboard,
   Palette,
   PlugZap,
   UserRoundCog,
+  Wallet,
   Workflow,
   type LucideIcon,
 } from 'lucide-react';
@@ -31,6 +33,7 @@ const CREATE_NAV: NavItem[] = [
   { href: '/studio', label: 'Avatar & Voice', icon: UserRoundCog },
   { href: '/workflows', label: 'Workflows', icon: Workflow },
   { href: '/brands', label: 'Brand Kits', icon: Palette },
+  { href: '/billing', label: 'Billing', icon: Wallet },
 ];
 
 const ADMIN_NAV: NavItem[] = [
@@ -38,6 +41,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: '/monitor', label: 'GPU & Queues', icon: Gauge, badge: '8', badgeKind: 'live' },
   { href: '/developer', label: 'Developer', icon: Code },
   { href: '/plugins', label: 'Plugins', icon: Blocks },
+  { href: '/payments', label: 'Payments', icon: CreditCard },
 ];
 
 function NavGroup({ title, items, pathname }: { title: string; items: NavItem[]; pathname: string }) {
