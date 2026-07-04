@@ -36,6 +36,7 @@
     "@surfgen/telemetry": "workspace:*",
     "fastify": "^5.8.5",
     "nanoid": "catalog:",
+    "nodemailer": "^9.0.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "ws": "^8.18.2",
@@ -43,6 +44,7 @@
   },
   "devDependencies": {
     "@swc/core": "^1.12.7",
+    "@types/nodemailer": "^8.0.1",
     "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "catalog:",
     "tsup": "catalog:",

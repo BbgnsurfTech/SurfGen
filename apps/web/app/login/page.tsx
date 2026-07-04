@@ -2,28 +2,51 @@
 
 import { KeyRound, Loader, LogIn, Mail } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ApiError, login } from '../../lib/api/client';
+import { ApiError, login, resendVerification } from '../../lib/api/client';
+
+const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendWait, setResendWait] = useState(0);
   const [busy, setBusy] = useState(false);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError(null);
+    setNeedsVerification(false);
     try {
       await login(email, password);
       router.push('/');
     } catch (caught) {
+      if (caught instanceof ApiError && caught.code === 'FORBIDDEN') {
+        // Login's only 403: correct credentials, unverified email.
+        setNeedsVerification(true);
+      }
       setError(caught instanceof ApiError ? caught.message : 'API unreachable — is the stack running?');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const resend = async () => {
+    setResendWait(RESEND_COOLDOWN_SECONDS);
+    const timer = setInterval(
+      () => setResendWait((s) => (s <= 1 ? (clearInterval(timer), 0) : s - 1)),
+      1000,
+    );
+    try {
+      await resendVerification(email);
+    } catch {
+      // Quiet by design — mirrors the enumeration-safe API.
     }
   };
 
@@ -40,9 +63,7 @@ export default function LoginPage() {
 
         <form onSubmit={submit} className="rounded-[20px] bg-card p-[26px] shadow-[0_30px_80px_rgba(0,0,0,.4)]">
           <div className="font-display text-lg font-bold">Sign in</div>
-          <div className="mt-1 mb-5 text-[12.5px] text-taupe">
-            Use the seeded admin account, or any account created via the API.
-          </div>
+          <div className="mt-1 mb-5 text-[12.5px] text-taupe">Welcome back — sign in to your workspace.</div>
 
           <label className="mb-2 block text-[11px] font-bold tracking-[0.08em] text-taupe">EMAIL</label>
           <div className="mb-4 flex h-11 items-center gap-2 rounded-[11px] border border-line bg-paper px-[13px]">
@@ -77,6 +98,16 @@ export default function LoginPage() {
               {error}
             </div>
           )}
+          {needsVerification && (
+            <button
+              type="button"
+              onClick={resend}
+              disabled={resendWait > 0}
+              className="mb-4 h-10 w-full rounded-full border border-line bg-cream text-[12.5px] font-bold text-primary disabled:opacity-50"
+            >
+              {resendWait > 0 ? `Resend available in ${resendWait}s` : 'Resend verification email'}
+            </button>
+          )}
 
           <button
             type="submit"
@@ -90,6 +121,13 @@ export default function LoginPage() {
             )}
             Sign in
           </button>
+
+          <div className="mt-4 text-center text-[12px] text-stone">
+            New to SurfGen?{' '}
+            <Link href="/signup" className="font-bold text-primary hover:underline">
+              Create an account
+            </Link>
+          </div>
         </form>
 
         <div className="mt-5 text-center text-[11.5px] leading-relaxed text-stone">

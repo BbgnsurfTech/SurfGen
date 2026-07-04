@@ -1,8 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConflictError, UnauthorizedError } from '@surfgen/core';
+import { ConflictError, ForbiddenError, UnauthorizedError } from '@surfgen/core';
 import { PrismaService } from '../common/prisma.service';
+import { MailerService } from './mailer.service';
 import { hashPassword, verifyPassword } from './password';
 
 export interface AccessTokenPayload {
@@ -19,19 +20,34 @@ export interface AuthTokens {
 
 const ACCESS_TOKEN_TTL_SECONDS = 900; // 15 min
 const REFRESH_TOKEN_TTL_DAYS = 30;
+const VERIFICATION_TOKEN_TTL_HOURS = 24;
 
 const sha256 = (value: string): string => createHash('sha256').update(value).digest('hex');
+
+/** Login is gated on a confirmed address only when explicitly enabled. */
+const verificationRequired = (): boolean => process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
+
+export type RegisterResult =
+  | (AuthTokens & { requiresVerification: false })
+  | { requiresVerification: true; email: string };
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly mailer: MailerService,
   ) {}
 
-  async register(input: { email: string; password: string; name: string }): Promise<AuthTokens> {
+  async register(input: { email: string; password: string; name: string }): Promise<RegisterResult> {
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
-    if (existing) throw new ConflictError('An account with this email already exists');
+    if (existing) {
+      // With verification on, respond exactly as for a fresh signup so the
+      // endpoint cannot be used to enumerate accounts. With it off, success
+      // vs failure is observable anyway — a clear error serves users better.
+      if (verificationRequired()) return { requiresVerification: true, email: input.email };
+      throw new ConflictError('An account with this email already exists');
+    }
 
     const user = await this.prisma.user.create({
       data: {
@@ -51,7 +67,10 @@ export class AuthService {
       },
     });
 
-    return this.issueTokens(user.id, user.email, user.isSuperAdmin);
+    await this.sendVerification(user.id, user.email, user.name);
+    if (verificationRequired()) return { requiresVerification: true, email: user.email };
+    const tokens = await this.issueTokens(user.id, user.email, user.isSuperAdmin);
+    return { ...tokens, requiresVerification: false };
   }
 
   async login(email: string, password: string): Promise<AuthTokens> {
@@ -62,7 +81,56 @@ export class AuthService {
     if (!verifyPassword(password, user.passwordHash)) {
       throw new UnauthorizedError('Invalid credentials');
     }
+    if (verificationRequired() && !user.emailVerifiedAt) {
+      throw new ForbiddenError('Email not verified — check your inbox or request a new link');
+    }
     return this.issueTokens(user.id, user.email, user.isSuperAdmin);
+  }
+
+  /** Single-use, 24h-expiry, sha256-stored verification token → auto-login. */
+  async verifyEmail(token: string): Promise<AuthTokens> {
+    const stored = await this.prisma.emailVerificationToken.findUnique({
+      where: { tokenHash: sha256(token) },
+      include: { user: true },
+    });
+    if (!stored || stored.usedAt || stored.expiresAt < new Date() || stored.user.deletedAt) {
+      throw new UnauthorizedError('Invalid or expired verification link');
+    }
+    await this.prisma.$transaction([
+      this.prisma.emailVerificationToken.update({
+        where: { id: stored.id },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.user.update({
+        where: { id: stored.userId },
+        data: { emailVerifiedAt: stored.user.emailVerifiedAt ?? new Date() },
+      }),
+    ]);
+    return this.issueTokens(stored.user.id, stored.user.email, stored.user.isSuperAdmin);
+  }
+
+  /** Always resolves — response never reveals whether the account exists. */
+  async resendVerification(email: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user || user.deletedAt || user.emailVerifiedAt) return;
+    await this.sendVerification(user.id, user.email, user.name);
+  }
+
+  private async sendVerification(userId: string, email: string, name: string): Promise<void> {
+    const token = `sgv_${randomBytes(32).toString('hex')}`;
+    await this.prisma.emailVerificationToken.create({
+      data: {
+        userId,
+        tokenHash: sha256(token),
+        expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_HOURS * 3600 * 1000),
+      },
+    });
+    const webUrl = process.env.PUBLIC_WEB_URL ?? 'http://localhost:3000';
+    await this.mailer.sendVerificationEmail(
+      email,
+      name,
+      `${webUrl}/verify-email?token=${token}`,
+    );
   }
 
   /** Rotating refresh tokens: each refresh revokes the presented token. */

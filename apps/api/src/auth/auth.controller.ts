@@ -12,7 +12,12 @@ const RegisterSchema = z.object({
   email: z.string().email(),
   password: z.string().min(12, 'Password must be at least 12 characters'),
   name: z.string().min(1).max(120),
+  /** Honeypot — hidden in the UI; bots that fill it get a fake success. */
+  website: z.string().optional(),
 });
+
+const VerifyEmailSchema = z.object({ token: z.string().min(20).max(200) });
+const ResendSchema = z.object({ email: z.string().email() });
 
 const LoginSchema = z.object({
   email: z.string().email(),
@@ -63,7 +68,39 @@ export class AuthController {
     @Body(new ZodValidationPipe(RegisterSchema)) body: z.infer<typeof RegisterSchema>,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    return this.withSessionCookie(reply, await this.authService.register(body));
+    if (body.website) {
+      // Honeypot tripped — answer like a verification-pending signup and do
+      // nothing, so bots cannot tell they were caught.
+      return { requiresVerification: true, email: body.email };
+    }
+    const result = await this.authService.register({
+      email: body.email,
+      password: body.password,
+      name: body.name,
+    });
+    return result.requiresVerification ? result : this.withSessionCookie(reply, result);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('verify-email')
+  @ApiOperation({ summary: 'Confirm an email address (single-use token) and sign in' })
+  async verifyEmail(
+    @Body(new ZodValidationPipe(VerifyEmailSchema)) body: z.infer<typeof VerifyEmailSchema>,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    return this.withSessionCookie(reply, await this.authService.verifyEmail(body.token));
+  }
+
+  @Public()
+  @HttpCode(202)
+  @Post('resend-verification')
+  @ApiOperation({ summary: 'Re-send the verification email (never reveals account existence)' })
+  async resendVerification(
+    @Body(new ZodValidationPipe(ResendSchema)) body: z.infer<typeof ResendSchema>,
+  ) {
+    await this.authService.resendVerification(body.email);
+    return { sent: true };
   }
 
   @Public()

@@ -31,6 +31,8 @@ async function main(): Promise<void> {
       name: 'SurfGen Admin',
       passwordHash: hashPassword(adminPassword),
       isSuperAdmin: true,
+      // Seeded account must work with REQUIRE_EMAIL_VERIFICATION=true.
+      emailVerifiedAt: new Date(),
     },
   });
 

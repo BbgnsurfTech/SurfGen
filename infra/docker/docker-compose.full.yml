@@ -22,6 +22,14 @@ x-app-env: &app-env
   # — browsers reject Secure cookies over http on non-localhost hosts.
   COOKIE_SECURE: ${COOKIE_SECURE:-}
   CORS_ORIGINS: ${CORS_ORIGINS:-}
+  # Signup email verification — link host + SMTP relay (unset SMTP logs links).
+  REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-}
+  PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:3000}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASS: ${SMTP_PASS:-}
+  MAIL_FROM: ${MAIL_FROM:-}
   SURFGEN_S3_ACCESS_KEY: ${MINIO_USER:-surfgen}
   SURFGEN_S3_SECRET_KEY: ${MINIO_PASSWORD:-surfgen-dev}
   SURFGEN_STORAGE__DRIVER: s3

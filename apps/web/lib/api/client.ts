@@ -112,6 +112,48 @@ export async function api<T>(
   return { data: envelope.data, meta: envelope.meta };
 }
 
+export interface SignupInput {
+  name: string;
+  email: string;
+  password: string;
+  /** Honeypot — never filled by humans; the field is visually hidden. */
+  website?: string;
+}
+
+/**
+ * Register an account. Returns `verified: true` when the deployment does not
+ * require email verification (the session starts immediately); otherwise the
+ * caller should show the "check your inbox" state.
+ */
+export async function register(input: SignupInput): Promise<{ verified: boolean }> {
+  const response = await authFetch('/v1/auth/register', input);
+  const envelope = await parseEnvelope<{ accessToken?: string; requiresVerification?: boolean }>(response);
+  if (!envelope.success || envelope.error) {
+    throw new ApiError(envelope.error?.code ?? 'UNKNOWN', envelope.error?.message ?? 'signup failed');
+  }
+  if (envelope.data.accessToken) {
+    setAccessToken(envelope.data.accessToken);
+    return { verified: true };
+  }
+  return { verified: false };
+}
+
+/** Redeem a single-use verification token — signs the user in on success. */
+export async function verifyEmail(token: string): Promise<void> {
+  const response = await authFetch('/v1/auth/verify-email', { token });
+  const envelope = await parseEnvelope<{ accessToken: string }>(response);
+  if (!envelope.success || envelope.error) {
+    throw new ApiError(envelope.error?.code ?? 'UNKNOWN', envelope.error?.message ?? 'verification failed');
+  }
+  setAccessToken(envelope.data.accessToken);
+}
+
+/** Fire-and-forget by design — the API never reveals whether the email exists. */
+export async function resendVerification(email: string): Promise<void> {
+  const response = await authFetch('/v1/auth/resend-verification', { email });
+  if (!response.ok) throw new ApiError('RESEND_FAILED', 'could not send the email — try again shortly');
+}
+
 export async function login(email: string, password: string): Promise<void> {
   const response = await authFetch('/v1/auth/login', { email, password });
   const envelope = await parseEnvelope<{ accessToken: string }>(response);

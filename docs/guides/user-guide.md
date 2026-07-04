@@ -4,10 +4,14 @@
 
 ## Getting an account
 
-SurfGen does not have a self-serve signup page yet ([roadmap](../roadmap.md)). You sign in at `/login` with one of:
+Create an account at **`/signup`** — name, email, and a password of at least 12 characters (a live strength meter guides you; mixing cases, digits, and symbols strengthens it). Signing up provisions a personal workspace (organization) automatically.
 
-- **The seeded admin account** — `admin@surfgen.local`. The install/seed script prints the password when it runs (set `ADMIN_PASSWORD` beforehand to choose it; otherwise a random one is generated and printed once).
-- **An account created via the API** — an existing user or admin runs:
+**Email verification.** When the deployment enables it (`REQUIRE_EMAIL_VERIFICATION=true`), signup ends with a "check your inbox" screen: click the emailed link within 24 hours to confirm the address — it signs you in directly. Links are single-use; if one expires, use **Resend verification email** on the signup confirmation or sign-in page. Until you verify, sign-in is refused with a resend prompt. On deployments without verification, signup signs you in immediately.
+
+You can also sign in at `/login` with:
+
+- **The seeded admin account** — `admin@surfgen.local` (pre-verified). The install/seed script prints the password when it runs (set `ADMIN_PASSWORD` beforehand to choose it; otherwise a random one is generated and printed once).
+- **An account created via the API**:
 
 ```bash
 curl -X POST http://localhost:4000/v1/auth/register \
@@ -15,7 +19,7 @@ curl -X POST http://localhost:4000/v1/auth/register \
   -d '{ "email": "you@example.com", "password": "at-least-12-characters", "name": "Your Name" }'
 ```
 
-Passwords must be at least 12 characters. Registering creates the account and a personal workspace (organization). To join a teammate's organization, an org admin adds you by email (see [Admin Guide](admin-guide.md#managing-members)).
+To join a teammate's organization, an org admin adds you by email (see [Admin Guide](admin-guide.md#managing-members)).
 
 Your browser session uses a secure httpOnly cookie; you stay signed in and can log out from the top bar at any time.
 

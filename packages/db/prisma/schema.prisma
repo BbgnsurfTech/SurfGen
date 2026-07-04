@@ -24,19 +24,38 @@ model User {
   avatarUrl    String?
   locale       String    @default("en")
   isSuperAdmin Boolean   @default(false)
+  /// Set when the address is confirmed; login is gated on this only when
+  /// REQUIRE_EMAIL_VERIFICATION=true.
+  emailVerifiedAt DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   deletedAt    DateTime?
 
-  memberships   Membership[]
-  teamMembers   TeamMember[]
-  apiKeys       ApiKey[]
-  auditLogs     AuditLog[]
-  notifications Notification[]
-  oauthAccounts OAuthAccount[]
-  refreshTokens RefreshToken[]
+  memberships        Membership[]
+  teamMembers        TeamMember[]
+  apiKeys            ApiKey[]
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  oauthAccounts      OAuthAccount[]
+  refreshTokens      RefreshToken[]
+  verificationTokens EmailVerificationToken[]
 
   @@index([email])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  /// sha256 of the emailed token — plaintext never persists (same pattern
+  /// as RefreshToken / ApiKey).
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model OAuthAccount {

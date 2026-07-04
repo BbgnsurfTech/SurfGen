@@ -5,6 +5,7 @@ import { PrismaService } from '../common/prisma.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './guards';
+import { MailerService } from './mailer.service';
 
 @Global()
 @Module({
@@ -20,7 +21,7 @@ import { AuthGuard } from './guards';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, PrismaService, { provide: APP_GUARD, useClass: AuthGuard }],
+  providers: [AuthService, MailerService, PrismaService, { provide: APP_GUARD, useClass: AuthGuard }],
   exports: [AuthService, PrismaService, JwtModule],
 })
 export class AuthModule {}
