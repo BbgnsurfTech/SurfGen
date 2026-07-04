@@ -135,9 +135,11 @@ bytes Paystack signed.
 
 ### Error handling
 
-- Gateway disabled / unconfigured → domain error (`BILLING_DISABLED`) via the
-  existing `DomainExceptionFilter`; UI shows "payments not available".
-- Paystack API failures → `BILLING_GATEWAY_ERROR` with logged detail,
+- Gateway disabled / unconfigured → `ConfigurationError` (existing
+  `CONFIGURATION_ERROR` code — the `ErrorCode` union in `@surfgen/core` is
+  closed) via the existing `DomainExceptionFilter`; UI shows "payments not
+  available".
+- Paystack API failures → `ProviderError('paystack', …)` with logged detail,
   user-safe message.
 - Encryption key missing → explicit startup-style error on first use, never a
   silent fallback.
