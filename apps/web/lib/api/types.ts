@@ -151,3 +151,42 @@ export interface Webhook {
   events: string[];
   enabled: boolean;
 }
+
+export interface GatewaySettings {
+  gateway: 'paystack';
+  enabled: boolean;
+  publicKey: string | null;
+  secretKeyMasked: string | null;
+  currency: string;
+}
+
+export interface BillingPlan {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  amountCents: number;
+  currency: string;
+  interval: 'monthly' | 'annually';
+  paystackPlanCode?: string | null;
+  features: string[];
+  active?: boolean;
+  sortOrder?: number;
+}
+
+export interface PublicPlans {
+  gateway: { enabled: boolean; currency: string };
+  plans: BillingPlan[];
+}
+
+export interface OrgSubscription {
+  plan: string | null;
+  status: string | null;
+  currentPeriodEnd: string | null;
+  gateway: { enabled: boolean; currency: string; publicKey: string | null };
+}
+
+export interface CheckoutSession {
+  authorizationUrl: string;
+  reference: string;
+}

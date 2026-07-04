@@ -5,6 +5,11 @@ import { useEffect, useState } from 'react';
 import { API_URL, api, isAuthed } from './client';
 import type {
   ApiKey,
+  BillingPlan,
+  CheckoutSession,
+  GatewaySettings,
+  OrgSubscription,
+  PublicPlans,
   Avatar,
   BrandKit,
   Monitor,
@@ -266,3 +271,104 @@ export const useGenerateVideo = () => {
     },
   });
 };
+
+// --- billing -----------------------------------------------------------------
+
+export function useGatewaySettings() {
+  const authed = useAuthed();
+  return useQuery({
+    queryKey: ['billing-gateway'],
+    enabled: authed,
+    retry: false,
+    queryFn: async () => (await api<GatewaySettings>('GET', '/v1/admin/billing/gateway')).data,
+  });
+}
+
+export function useUpdateGateway() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: {
+      enabled: boolean;
+      publicKey?: string | null;
+      secretKey?: string;
+      currency: string;
+    }) => (await api<GatewaySettings>('PUT', '/v1/admin/billing/gateway', body)).data,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['billing-gateway'] }),
+  });
+}
+
+export function useTestGateway() {
+  return useMutation({
+    mutationFn: async () => (await api<{ ok: true }>('POST', '/v1/admin/billing/gateway/test')).data,
+  });
+}
+
+export function useAdminPlans() {
+  const authed = useAuthed();
+  return useQuery({
+    queryKey: ['billing-admin-plans'],
+    enabled: authed,
+    retry: false,
+    queryFn: async () => (await api<BillingPlan[]>('GET', '/v1/admin/billing/plans')).data,
+  });
+}
+
+export function useCreatePlan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Partial<BillingPlan> & { code: string; name: string; amountCents: number }) =>
+      (await api<BillingPlan>('POST', '/v1/admin/billing/plans', body)).data,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['billing-admin-plans'] }),
+  });
+}
+
+export function useUpdatePlan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ planId, ...body }: Partial<BillingPlan> & { planId: string }) =>
+      (await api<BillingPlan>('PATCH', `/v1/admin/billing/plans/${planId}`, body)).data,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['billing-admin-plans'] }),
+  });
+}
+
+export function useBillingPlans() {
+  const authed = useAuthed();
+  return useQuery({
+    queryKey: ['billing-plans'],
+    enabled: authed,
+    queryFn: async () => (await api<PublicPlans>('GET', '/v1/billing/plans')).data,
+  });
+}
+
+export function useOrgSubscription() {
+  const org = useOrg();
+  const orgId = org.data?.id;
+  return useQuery({
+    queryKey: ['billing-subscription', orgId],
+    enabled: !!orgId,
+    queryFn: async () => (await api<OrgSubscription>('GET', `/v1/orgs/${orgId!}/billing/subscription`)).data,
+  });
+}
+
+export const useCheckout = () =>
+  useOrgMutation<{ planId: string }, { data: CheckoutSession; meta: unknown }>(
+    ['billing-subscription'],
+    async (orgId, body) => api<CheckoutSession>('POST', `/v1/orgs/${orgId}/billing/checkout`, body),
+  );
+
+export function useVerifyCheckout(reference: string | null) {
+  const org = useOrg();
+  const orgId = org.data?.id;
+  return useQuery({
+    queryKey: ['billing-verify', reference],
+    enabled: !!orgId && !!reference,
+    retry: 2,
+    queryFn: async () =>
+      (
+        await api<{ status: 'paid' | 'pending' | 'failed' }>(
+          'GET',
+          `/v1/orgs/${orgId!}/billing/verify/${reference!}`,
+        )
+      ).data,
+  });
+}
