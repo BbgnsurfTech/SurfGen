@@ -3,6 +3,10 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { InMemoryEventBus, RabbitMqEventBus } from '@surfgen/events';
 import { MetricsRegistry, createLogger } from '@surfgen/telemetry';
 import { AuthModule } from './auth/auth.module';
+import { BillingAdminController } from './billing/billing-admin.controller';
+import { BillingController } from './billing/billing.controller';
+import { BillingWebhookController } from './billing/billing-webhook.controller';
+import { BillingService } from './billing/billing.service';
 import { AuditInterceptor } from './common/audit.interceptor';
 import { DomainExceptionFilter } from './common/domain-exception.filter';
 import { EnvelopeInterceptor } from './common/envelope.interceptor';
@@ -56,9 +60,13 @@ const eventBusProvider = {
     AdminController,
     DeveloperController,
     StatsController,
+    BillingAdminController,
+    BillingController,
+    BillingWebhookController,
   ],
   providers: [
     PrismaService,
+    BillingService,
     storageProvider,
     VideosService,
     ProgressGateway,

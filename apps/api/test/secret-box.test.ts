@@ -31,8 +31,8 @@ describe('secret-box', () => {
     // Arrange
     const sealed = sealSecret('sk_test_abcdef123456');
     const parts = sealed.split(':');
-    const flipped = Buffer.from(parts[3], 'base64');
-    flipped[0] ^= 0xff;
+    const flipped = Buffer.from(parts[3]!, 'base64');
+    flipped[0] = flipped[0]! ^ 0xff;
     parts[3] = flipped.toString('base64');
 
     // Act + Assert

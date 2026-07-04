@@ -18,7 +18,7 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({ trustProxy: true, bodyLimit: 50 * 1024 * 1024 }),
-    { logger: false },
+    { logger: false, rawBody: true }, // rawBody: Paystack webhook HMAC is computed over the exact bytes
   );
 
   await app.register(helmet, { contentSecurityPolicy: false }); // API responses are JSON; CSP is set by the web app

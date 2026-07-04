@@ -39,7 +39,7 @@ function makeService(overrides: Record<string, unknown> = {}) {
       update: vi.fn(async () => ({})),
     },
     invoice: {
-      create: vi.fn(async () => ({ id: 'inv_1' })),
+      create: vi.fn(async (_args: unknown) => ({ id: 'inv_1' })),
       findFirst: vi.fn(async () => null as unknown),
       update: vi.fn(async () => ({})),
     },
@@ -54,7 +54,7 @@ function makeService(overrides: Record<string, unknown> = {}) {
   };
   const service = new BillingService(prisma as never);
   const client = {
-    initializeTransaction: vi.fn(async () => ({
+    initializeTransaction: vi.fn(async (_input: unknown) => ({
       authorizationUrl: 'https://checkout.paystack.com/abc',
       accessCode: 'ac',
       reference: 'sg_ref1',
@@ -115,7 +115,7 @@ describe('gateway settings', () => {
       currency: 'NGN',
     });
 
-    const args = prisma.paymentGatewaySetting.upsert.mock.calls[0][0] as unknown as {
+    const args = prisma.paymentGatewaySetting.upsert.mock.calls[0]![0] as unknown as {
       create: { secretKeyEncrypted: string };
     };
     expect(args.create.secretKeyEncrypted.startsWith('v1:')).toBe(true);
@@ -128,7 +128,7 @@ describe('gateway settings', () => {
 
     await service.updateGatewaySettings({ enabled: false, publicKey: 'pk_x', currency: 'NGN' });
 
-    const args = prisma.paymentGatewaySetting.upsert.mock.calls[0][0] as unknown as {
+    const args = prisma.paymentGatewaySetting.upsert.mock.calls[0]![0] as unknown as {
       update: Record<string, unknown>;
     };
     expect(args.update.secretKeyEncrypted).toBeUndefined();
@@ -155,12 +155,12 @@ describe('checkout', () => {
 
     // Assert
     expect(session.authorizationUrl).toBe('https://checkout.paystack.com/abc');
-    const invoiceArgs = prisma.invoice.create.mock.calls[0][0] as unknown as {
+    const invoiceArgs = prisma.invoice.create.mock.calls[0]![0] as unknown as {
       data: Record<string, unknown>;
     };
     expect(invoiceArgs.data).toMatchObject({ status: 'open', amountCents: 500000, currency: 'NGN' });
     expect(invoiceArgs.data.externalId).toBe(session.reference);
-    const initArgs = client.initializeTransaction.mock.calls[0][0] as unknown as {
+    const initArgs = client.initializeTransaction.mock.calls[0]![0] as unknown as {
       metadata: Record<string, unknown>;
     };
     expect(initArgs.metadata).toMatchObject({ planId: 'plan_1', organizationId: 'org_1' });
@@ -281,5 +281,14 @@ describe('webhook', () => {
     expect(prisma.subscription.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { externalId: 'SUB_1' }, data: { status: 'canceled' } }),
     );
+  });
+});
+
+describe('admin controller guard', () => {
+  test('BillingAdminController is super-admin gated at the class level', async () => {
+    await import('reflect-metadata');
+    const { SUPER_ADMIN_KEY } = await import('../src/auth/guards');
+    const { BillingAdminController } = await import('../src/billing/billing-admin.controller');
+    expect(Reflect.getMetadata(SUPER_ADMIN_KEY, BillingAdminController)).toBe(true);
   });
 });

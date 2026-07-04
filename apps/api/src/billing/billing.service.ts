@@ -1,5 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
+import type { Plan } from '@prisma/client';
 import { ConfigurationError, NotFoundError, UnauthorizedError, ValidationError } from '@surfgen/core';
 import { PrismaService } from '../common/prisma.service';
 import { maskSecret, openSecret, sealSecret } from '../common/secret-box';
@@ -34,15 +35,6 @@ interface StoredGateway {
   publicKey: string | null;
   secretKeyEncrypted: string | null;
   currency: string;
-}
-
-interface SyncablePlan {
-  id: string;
-  name: string;
-  amountCents: number;
-  interval: string;
-  currency: string;
-  paystackPlanCode: string | null;
 }
 
 interface SettleableInvoice {
@@ -179,7 +171,7 @@ export class BillingService {
   }
 
   /** Best-effort Paystack sync — a disabled/unconfigured gateway defers it. */
-  private async syncPlanToPaystack<T extends SyncablePlan>(plan: T): Promise<T> {
+  private async syncPlanToPaystack(plan: Plan): Promise<Plan> {
     if (plan.paystackPlanCode) return plan;
     const row = await this.gatewayRow();
     if (!row?.enabled || !row.secretKeyEncrypted) return plan;
