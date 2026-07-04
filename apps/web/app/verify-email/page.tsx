@@ -87,7 +87,7 @@ export default function VerifyEmailPage() {
     <main className="flex min-h-dvh items-center justify-center bg-ink p-6">
       <div className="w-[400px] max-w-full">
         <div className="mb-8 flex items-center justify-center gap-3">
-          <Image src="/logo-white.png" alt="" width={36} height={36} className="object-contain" />
+          <Image src="/logo.png" alt="" width={36} height={36} className="object-contain" />
           <div className="leading-none">
             <div className="font-display text-xl font-extrabold tracking-tight text-white">SurfGen</div>
             <div className="mt-1 text-[10px] font-medium tracking-[0.18em] text-camel">BBGNSURF · AI VIDEO</div>

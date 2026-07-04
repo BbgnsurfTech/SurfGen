@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/surfgen-banner.webp" alt="SurfGen — AI video generation platform. Text, images, audio, videos. Ideate · Generate · Animate · Engage." width="760" />
+</p>
+
 # SurfGen
 
 **Open-source, provider-agnostic AI avatar video generation platform.**

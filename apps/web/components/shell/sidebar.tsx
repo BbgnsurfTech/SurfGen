@@ -80,7 +80,7 @@ export function Sidebar() {
   return (
     <aside className="flex w-[236px] flex-none flex-col border-r border-line-dark bg-ink text-sand">
       <div className="flex items-center gap-[11px] border-b border-carbon px-5 pt-5 pb-4">
-        <Image src="/logo-white.png" alt="SurfGen logo" width={30} height={30} className="flex-none object-contain" />
+        <Image src="/logo.png" alt="SurfGen logo" width={30} height={30} className="flex-none object-contain" />
         <div className="leading-none">
           <div className="font-display text-[17px] font-extrabold tracking-tight text-white">SurfGen</div>
           <div className="mt-[3px] text-[9.5px] font-medium tracking-[0.18em] text-camel">
