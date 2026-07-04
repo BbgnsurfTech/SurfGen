@@ -1,4 +1,5 @@
-import { Body, Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
+import { Body, Controller, Get, HttpCode, Post, Query, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UnauthorizedError } from '@surfgen/core';
 import { z } from 'zod';
@@ -6,6 +7,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import '@fastify/cookie'; // fastify type augmentation: request.cookies / reply.setCookie
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { AuthService, type AuthTokens } from './auth.service';
+import { GoogleOAuthService } from './google-oauth.service';
 import { Public } from './guards';
 
 const RegisterSchema = z.object({
@@ -27,8 +29,19 @@ const LoginSchema = z.object({
 /** Browsers rely on the httpOnly cookie; CLIs/API clients pass the body field. */
 const RefreshSchema = z.object({ refreshToken: z.string().min(1).optional() });
 
+const GoogleCallbackSchema = z.object({
+  code: z.string().optional(),
+  state: z.string().optional(),
+  error: z.string().optional(),
+});
+
 const REFRESH_COOKIE = 'surfgen_rt';
 const REFRESH_COOKIE_MAX_AGE_SECONDS = 30 * 24 * 3600; // mirror REFRESH_TOKEN_TTL_DAYS
+
+const OAUTH_STATE_COOKIE = 'surfgen_oauth_state';
+const OAUTH_STATE_MAX_AGE_SECONDS = 600;
+
+const publicWebUrl = (): string => process.env.PUBLIC_WEB_URL ?? 'http://localhost:3000';
 
 /**
  * SameSite=Strict + Path=/v1/auth: the cookie only travels to the auth
@@ -50,10 +63,29 @@ function refreshCookieOptions() {
   };
 }
 
+/**
+ * Unlike the refresh cookie, the state cookie must be SameSite=Lax: the
+ * OAuth callback arrives as a top-level navigation from accounts.google.com,
+ * and a Strict cookie would not accompany that request.
+ */
+function oauthStateCookieOptions() {
+  const explicit = process.env.COOKIE_SECURE;
+  return {
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    secure: explicit ? explicit === 'true' : process.env.NODE_ENV === 'production',
+    path: '/v1/auth',
+    maxAge: OAUTH_STATE_MAX_AGE_SECONDS,
+  };
+}
+
 @ApiTags('auth')
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly googleOAuth: GoogleOAuthService,
+  ) {}
 
   /** Set the browser session cookie; tokens stay in the body for non-browser clients. */
   private withSessionCookie(reply: FastifyReply, tokens: AuthTokens): AuthTokens {
@@ -112,6 +144,53 @@ export class AuthController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
     return this.withSessionCookie(reply, await this.authService.login(body.email, body.password));
+  }
+
+  @Public()
+  @Get('providers')
+  @ApiOperation({ summary: 'Which sign-in methods this deployment offers' })
+  providers() {
+    return { password: true, google: this.googleOAuth.isConfigured() };
+  }
+
+  @Public()
+  @Get('google')
+  @ApiOperation({ summary: 'Begin the Google OAuth sign-in flow (full-page redirect)' })
+  googleStart(@Res() reply: FastifyReply) {
+    if (!this.googleOAuth.isConfigured()) {
+      return reply.redirect(`${publicWebUrl()}/login?sso_error=unconfigured`, 302);
+    }
+    const state = randomBytes(16).toString('hex');
+    reply.setCookie(OAUTH_STATE_COOKIE, state, oauthStateCookieOptions());
+    return reply.redirect(this.googleOAuth.authorizationUrl(state), 302);
+  }
+
+  @Public()
+  @Get('google/callback')
+  @ApiOperation({ summary: 'Google OAuth redirect target — establishes the browser session' })
+  async googleCallback(
+    @Query(new ZodValidationPipe(GoogleCallbackSchema)) query: z.infer<typeof GoogleCallbackSchema>,
+    @Req() request: FastifyRequest,
+    @Res() reply: FastifyReply,
+  ) {
+    const back = (suffix: string) => reply.redirect(`${publicWebUrl()}/login?${suffix}`, 302);
+    const expectedState = request.cookies[OAUTH_STATE_COOKIE];
+    reply.clearCookie(OAUTH_STATE_COOKIE, { path: '/v1/auth' });
+
+    if (query.error) return back('sso_error=denied');
+    if (!query.code || !query.state || !expectedState || query.state !== expectedState) {
+      return back('sso_error=state');
+    }
+    try {
+      const profile = await this.googleOAuth.exchangeCode(query.code);
+      const tokens = await this.authService.loginWithGoogle(profile);
+      this.withSessionCookie(reply, tokens);
+      return back('sso=ok');
+    } catch {
+      // Provider/linking failures all collapse to one generic code — the URL
+      // must never carry attacker-visible detail about accounts.
+      return back('sso_error=failed');
+    }
   }
 
   @Public()

@@ -35,6 +35,7 @@
     "@surfgen/storage": "workspace:*",
     "@surfgen/telemetry": "workspace:*",
     "fastify": "^5.8.5",
+    "google-auth-library": "^10.9.0",
     "nanoid": "catalog:",
     "nodemailer": "^9.0.3",
     "reflect-metadata": "^0.2.2",

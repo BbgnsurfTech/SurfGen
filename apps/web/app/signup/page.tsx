@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { GoogleSignIn } from '../../components/ui/google-sign-in';
 import { ApiError, register, resendVerification } from '../../lib/api/client';
 
 const MIN_PASSWORD_LENGTH = 12;
@@ -241,6 +242,8 @@ export default function SignupPage() {
               )}
               Create account
             </button>
+
+            <GoogleSignIn label="Sign up with Google" />
 
             <div className="mt-4 text-center text-[12px] text-stone">
               Already have an account?{' '}

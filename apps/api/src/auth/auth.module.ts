@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PrismaService } from '../common/prisma.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { GoogleOAuthService } from './google-oauth.service';
 import { AuthGuard } from './guards';
 import { MailerService } from './mailer.service';
 
@@ -21,7 +22,13 @@ import { MailerService } from './mailer.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, MailerService, PrismaService, { provide: APP_GUARD, useClass: AuthGuard }],
+  providers: [
+    AuthService,
+    GoogleOAuthService,
+    MailerService,
+    PrismaService,
+    { provide: APP_GUARD, useClass: AuthGuard },
+  ],
   exports: [AuthService, PrismaService, JwtModule],
 })
 export class AuthModule {}

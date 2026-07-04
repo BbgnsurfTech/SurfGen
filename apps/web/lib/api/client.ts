@@ -163,6 +163,29 @@ export async function login(email: string, password: string): Promise<void> {
   setAccessToken(envelope.data.accessToken);
 }
 
+export interface AuthProviders {
+  password: boolean;
+  google: boolean;
+}
+
+/** Which sign-in methods the deployment offers — drives SSO button visibility. */
+export async function fetchAuthProviders(): Promise<AuthProviders> {
+  const response = await fetch(`${API_URL}/v1/auth/providers`);
+  const envelope = await parseEnvelope<AuthProviders>(response);
+  if (!envelope.success || envelope.error) {
+    throw new ApiError(envelope.error?.code ?? 'UNKNOWN', envelope.error?.message ?? 'providers unavailable');
+  }
+  return envelope.data;
+}
+
+/**
+ * Google SSO is a full-page redirect (API → Google consent → API callback →
+ * back to /login?sso=ok with the session cookie set) — a plain link, not fetch.
+ */
+export function googleSignInUrl(): string {
+  return `${API_URL}/v1/auth/google`;
+}
+
 export function logout(): void {
   // Cookie identifies the refresh token server-side; revoke + clear it.
   void authFetch('/v1/auth/logout').catch(() => undefined);

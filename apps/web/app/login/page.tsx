@@ -4,10 +4,19 @@ import { KeyRound, Loader, LogIn, Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { ApiError, login, resendVerification } from '../../lib/api/client';
+import { useEffect, useState } from 'react';
+import { GoogleSignIn } from '../../components/ui/google-sign-in';
+import { ApiError, ensureSession, login, resendVerification } from '../../lib/api/client';
 
 const RESEND_COOLDOWN_SECONDS = 30;
+
+/** Generic on purpose — the callback URL never carries account detail. */
+const SSO_ERROR_MESSAGES: Record<string, string> = {
+  denied: 'Google sign-in was cancelled.',
+  state: 'Google sign-in expired — please try again.',
+  failed: 'Google sign-in failed — please try again.',
+  unconfigured: 'Google sign-in is not enabled on this deployment.',
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,6 +26,29 @@ export default function LoginPage() {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [resendWait, setResendWait] = useState(0);
   const [busy, setBusy] = useState(false);
+
+  // Google OAuth lands back here: ?sso=ok means the callback set the session
+  // cookie — one silent refresh turns it into an in-memory access token.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sso = params.get('sso');
+    const ssoError = params.get('sso_error');
+    if (!sso && !ssoError) return;
+    window.history.replaceState(null, '', '/login'); // don't replay on refresh
+    if (sso === 'ok') {
+      setBusy(true);
+      void ensureSession().then((isAuthed) => {
+        if (isAuthed) {
+          router.push('/');
+        } else {
+          setBusy(false);
+          setError(SSO_ERROR_MESSAGES.failed ?? null);
+        }
+      });
+      return;
+    }
+    setError(SSO_ERROR_MESSAGES[ssoError ?? ''] ?? SSO_ERROR_MESSAGES.failed ?? null);
+  }, [router]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -121,6 +153,8 @@ export default function LoginPage() {
             )}
             Sign in
           </button>
+
+          <GoogleSignIn />
 
           <div className="mt-4 text-center text-[12px] text-stone">
             New to SurfGen?{' '}
