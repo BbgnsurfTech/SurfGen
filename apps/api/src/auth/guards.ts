@@ -28,6 +28,13 @@ export const ORG_ROLES_KEY = 'surfgen:orgRoles';
 /** Minimum org role required; resolved against the :orgId route param. */
 export const RequireOrgRole = (...roles: string[]) => SetMetadata(ORG_ROLES_KEY, roles);
 
+export const SUPER_ADMIN_KEY = 'surfgen:superAdmin';
+/**
+ * Deployment-level routes (cross-org data, plugin/provider state). Only JWT
+ * principals with isSuperAdmin pass — API keys are org-scoped and never do.
+ */
+export const RequireSuperAdmin = () => SetMetadata(SUPER_ADMIN_KEY, true);
+
 export const Principal = createParamDecorator(
   (_data: unknown, context: ExecutionContext): AuthenticatedPrincipal | undefined =>
     context.switchToHttp().getRequest<RequestWithAuth>().principal,
@@ -57,6 +64,14 @@ export class AuthGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<RequestWithAuth>();
     request.principal = await this.authenticate(request);
+
+    const requiresSuperAdmin = this.reflector.getAllAndOverride<boolean>(SUPER_ADMIN_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (requiresSuperAdmin && !request.principal.superAdmin) {
+      throw new ForbiddenError('Requires super-admin access');
+    }
 
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(ORG_ROLES_KEY, [
       context.getHandler(),

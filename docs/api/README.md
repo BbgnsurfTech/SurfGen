@@ -18,7 +18,7 @@ Every response uses one shape:
 Two interchangeable schemes on every endpoint:
 
 1. **JWT session** — `POST /v1/auth/login` → `{ accessToken, refreshToken }`. Access tokens live 15 min; refresh via `POST /v1/auth/refresh` (tokens rotate — the old refresh token is revoked, reuse is treated as theft). Send `Authorization: Bearer <accessToken>`.
-2. **API key** — org-scoped, created by an org admin; send `Authorization: Bearer <apiKey>`. Keys are stored hashed and carry scopes.
+2. **API key** — org-scoped, created by an org admin; send it in the `X-Api-Key` header. Keys are stored hashed and carry scopes.
 
 All routes require auth unless marked `@Public` (login, health, docs).
 

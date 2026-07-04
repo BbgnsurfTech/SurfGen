@@ -55,8 +55,11 @@ avatar) — no API keys required. Add cloud providers in `config/ai.yaml` when y
 
 - [Product Requirements](docs/product/PRD.md)
 - [Architecture](docs/architecture/high-level-architecture.md)
-- [Plugin SDK Guide](docs/guides/plugin-sdk.md)
-- [Deployment Guide](docs/guides/deployment.md)
+- [User Guide](docs/guides/user-guide.md) · [Admin Guide](docs/guides/admin-guide.md) · [CLI](docs/guides/cli.md)
+- [Developer Guide](docs/guides/developer-guide.md)
+- [Deployment & Operations](docs/guides/deployment.md)
+- [Plugin SDK Guide](docs/plugins/plugin-sdk-guide.md) · [Sample Plugin Walkthrough](docs/plugins/sample-plugin-walkthrough.md)
+- [Roadmap](docs/roadmap.md)
 
 ## License
 

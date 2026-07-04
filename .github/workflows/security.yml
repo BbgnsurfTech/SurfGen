@@ -1,0 +1,105 @@
+# Security checks — separate from ci.yml on purpose.
+#
+#   dependency-audit  pushes/PRs to main. BLOCKING: `pnpm audit --audit-level high`
+#                     fails the workflow on high/critical advisories.
+#   zap-baseline      workflow_dispatch ONLY — it needs a live stack, so it
+#                     builds and boots infra/docker/docker-compose.full.yml
+#                     (the dev compose file is infrastructure-only and cannot
+#                     serve the API). Building the images in CI is heavy, so
+#                     the job is manual and continue-on-error: findings are
+#                     reviewed from the logs/artifact, not used as a gate.
+#
+# Local equivalents are documented in tests/security/README.md.
+
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-audit:
+    name: Dependency audit (pnpm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Blocking: high/critical advisories anywhere in the workspace lockfile
+      # fail the job. Fix by upgrading the direct dependency, or pin a patched
+      # transitive version via pnpm.overrides (see tests/security/README.md).
+      - name: pnpm audit (fail on high/critical)
+        run: pnpm audit --audit-level high
+
+  zap-baseline:
+    name: ZAP baseline scan (manual — needs a live stack)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Advisory, not a gate: the containerized stack is built from scratch here
+    # and passive-scan findings need human triage against the justifications
+    # in tests/security/zap-baseline.conf.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Boot API stack (docker-compose.full.yml)
+        env:
+          JWT_SECRET: zap-baseline-ci-only-secret-0123456789abcdef
+        # `api` pulls in its dependencies (postgres, redis, rabbitmq, minio,
+        # createbucket, migrate) via depends_on; worker/web are not needed for
+        # an API baseline scan.
+        run: docker compose -f infra/docker/docker-compose.full.yml up -d --build api
+
+      - name: Wait for API health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:4000/healthz >/dev/null 2>&1; then
+              echo "API is up"; exit 0
+            fi
+            sleep 5
+          done
+          echo "API never became healthy" >&2
+          docker compose -f infra/docker/docker-compose.full.yml logs api
+          exit 1
+
+      - name: ZAP baseline scan (API)
+        run: |
+          mkdir -p zap-output
+          cp tests/security/zap-baseline.conf zap-output/
+          chmod -R a+rw zap-output
+          docker run --rm --network host \
+            -v "$PWD/zap-output:/zap/wrk:rw" \
+            ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+            -t http://localhost:4000 \
+            -c zap-baseline.conf \
+            -w zap-report.md
+
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-report
+          path: zap-output/zap-report.md
+          if-no-files-found: ignore
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose -f infra/docker/docker-compose.full.yml down -v

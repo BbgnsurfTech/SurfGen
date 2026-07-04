@@ -4,6 +4,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { loadAll, type ConfigBundle } from '@surfgen/config';
 import { NotFoundError, unwrap } from '@surfgen/core';
+import { RequireSuperAdmin } from '../auth/guards';
 import { PrismaService } from '../common/prisma.service';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 
@@ -57,6 +58,7 @@ export class AdminController {
   }
 
   @Patch('plugins/:pluginId')
+  @RequireSuperAdmin() // deployment-wide state — org members must not toggle
   async togglePlugin(
     @Param('pluginId') pluginId: string,
     @Body(new ZodValidationPipe(TogglePluginSchema)) body: z.infer<typeof TogglePluginSchema>,
@@ -67,6 +69,7 @@ export class AdminController {
   }
 
   @Get('monitor')
+  @RequireSuperAdmin() // job rows span every org (queue names, video titles)
   async monitor() {
     const [queueCounts, running] = await Promise.all([
       this.prisma.job.groupBy({

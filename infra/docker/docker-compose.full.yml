@@ -138,7 +138,9 @@ services:
       dockerfile: infra/docker/Dockerfile.worker
     environment:
       <<: *app-env
-      WORKER_QUEUES: cpu.default,cpu.media,io.webhooks,io.analytics
+      # Single-worker stack serves every resource class — the "gpu" queues are
+      # scheduling labels; local reference providers (piper/ffmpeg) run on CPU.
+      WORKER_QUEUES: cpu.default,cpu.media,gpu.default,gpu.heavy,io.webhooks,io.analytics
     depends_on:
       migrate:
         condition: service_completed_successfully
