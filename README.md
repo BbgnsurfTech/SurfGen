@@ -12,6 +12,10 @@ capability behind a pluggable provider abstraction. Swap ElevenLabs for a local 
 a cloud avatar API for SadTalker running in Docker, by editing a YAML file. **No application code
 ever names a vendor.**
 
+<p align="center">
+  <img src="docs/assets/surfgen-promo.webp" alt="SurfGen promo — Turn ideas into impactful videos. Text to Video, Image to Video, Audio to Video, Complete Video. AI-generated narration, captions, dynamic visuals, and engaging animations, shown over the SurfGen workspace dashboard." width="720" />
+</p>
+
 ```
 ┌─────────────┐   ┌──────────────┐   ┌───────────────────────────────┐
 │  Next.js    │   │  NestJS API  │   │  BullMQ Pipeline Workers      │
