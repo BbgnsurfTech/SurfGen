@@ -745,6 +745,36 @@ model Invoice {
   billingAccount BillingAccount @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
 }
 
+model PaymentGatewaySetting {
+  id                 String   @id @default(cuid())
+  gateway            String   @unique // "paystack"
+  enabled            Boolean  @default(false)
+  publicKey          String?
+  /// AES-256-GCM sealed: "v1:<iv b64>:<tag b64>:<ciphertext b64>" — see apps/api secret-box.
+  secretKeyEncrypted String?
+  currency           String   @default("NGN") // NGN | USD | GHS | ZAR | KES
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Plan {
+  id               String   @id @default(cuid())
+  code             String   @unique // e.g. "pro-monthly"
+  name             String
+  description      String?
+  /// Price in the currency's subunit (kobo/cents) — Paystack's native unit.
+  amountCents      Int
+  currency         String   @default("NGN")
+  interval         String // monthly | annually (Paystack interval names)
+  /// PLN_xxx once synced to Paystack; null until first sync.
+  paystackPlanCode String?
+  features         Json     @default("[]")
+  active           Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
 // ---------------------------------------------------------------------------
 // Audit, notifications, outbox
 // ---------------------------------------------------------------------------
