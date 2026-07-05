@@ -35,6 +35,7 @@ export class AdminController {
   }
 
   @Get('providers')
+  @RequireSuperAdmin() // deployment-wide vendor config, including which secrets each provider requires
   listProviders() {
     const bundle = this.bundle();
     const chainPosition = new Map<string, number>();
@@ -53,6 +54,7 @@ export class AdminController {
   }
 
   @Get('plugins')
+  @RequireSuperAdmin() // deployment-wide plugin registry, not org-scoped
   listPlugins() {
     return this.prisma.plugin.findMany({ orderBy: { name: 'asc' } });
   }
