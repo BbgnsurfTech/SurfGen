@@ -81,7 +81,7 @@ export default function SignupPage() {
     setError(null);
     try {
       const result = await register({ name, email, password, ...(website && { website }) });
-      if (result.verified) router.push('/');
+      if (result.verified) router.push('/dashboard');
       else setAwaitingVerification(true);
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'API unreachable — is the stack running?');

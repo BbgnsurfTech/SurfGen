@@ -34,7 +34,7 @@ interface NavItem {
 }
 
 const CREATE_NAV: NavItem[] = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/editor', label: 'Video Editor', icon: Clapperboard },
   { href: '/studio', label: 'Avatar & Voice', icon: UserRoundCog },
   { href: '/workflows', label: 'Workflows', icon: Workflow },
