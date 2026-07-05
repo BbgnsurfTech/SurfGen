@@ -2,7 +2,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { collectFinalOutput, type LLMInput, type LLMOutput, type TTSInput, type TTSOutput, type TranslationInput, type TranslationOutput, type AvatarInput, type AvatarOutput, type WordTiming } from '@surfgen/ai-sdk';
-import { PipelineError, RESOLUTIONS } from '@surfgen/core';
+import { PipelineError, RESOLUTIONS, type MediaRef } from '@surfgen/core';
 import { createEnvelope } from '@surfgen/events';
 import { artifactKey } from '@surfgen/storage';
 import type { StageJobContext } from '@surfgen/queue';
@@ -105,6 +105,36 @@ async function videoContext(runtime: StageRuntime, videoId: string) {
   };
 }
 
+/** Narrow shape resolveAvatarImage needs — satisfied by the real PrismaClient. */
+export interface AvatarLookup {
+  avatar: {
+    findFirst(args: {
+      where: { id: string; organizationId: string; deletedAt: null };
+    }): Promise<{ id: string; kind: string } | null>;
+  };
+  avatarVersion: {
+    findFirst(args: { where: { avatarId: string; isActive: boolean } }): Promise<{ artifacts: unknown } | null>;
+  };
+}
+
+/**
+ * Best-effort lookup of a photo avatar's source image. Returns null (never
+ * throws) whenever the avatar can't be resolved — missing, wrong org, wrong
+ * kind, no active version, no sourceImage artifact — so callers can fall back
+ * to the legacy avatarId-passthrough behavior instead of failing the render.
+ */
+export async function resolveAvatarImage(
+  prisma: AvatarLookup,
+  organizationId: string,
+  avatarId: string,
+): Promise<MediaRef | null> {
+  const avatar = await prisma.avatar.findFirst({ where: { id: avatarId, organizationId, deletedAt: null } });
+  if (!avatar || avatar.kind !== 'photo') return null;
+  const version = await prisma.avatarVersion.findFirst({ where: { avatarId: avatar.id, isActive: true } });
+  const artifacts = version?.artifacts as { sourceImage?: MediaRef } | undefined;
+  return artifacts?.sourceImage ?? null;
+}
+
 /** Build all stage handlers bound to a runtime. */
 export function createStageHandlers(runtime: StageRuntime): Record<string, Handler> {
   return {
@@ -182,11 +212,15 @@ export function createStageHandlers(runtime: StageRuntime): Record<string, Handl
       if (!audio) throw new PipelineError('avatar', 'tts artifact missing');
 
       await ctx.updateProgress(5, 'animating avatar');
+      const sourceImage = input.avatarId
+        ? await resolveAvatarImage(runtime.prisma, ctx.data.organizationId, input.avatarId)
+        : null;
+      const avatarRef = sourceImage ? { image: sourceImage } : { avatarId: input.avatarId ?? 'default' };
       const output = await collectFinalOutput(
         runtime.registry.execute<AvatarInput, AvatarOutput>(
           'avatar',
           {
-            avatarRef: { avatarId: input.avatarId ?? 'default' },
+            avatarRef,
             drivingAudio: { storageKey: audio.storageKey, contentType: 'audio/wav' },
             resolution: settings.resolution ?? RESOLUTIONS.fullHd,
           },
