@@ -3,9 +3,9 @@
 import { Clock, Cpu, Film, GitBranch, Layers, Play } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useStats, useWorkspace } from '../../lib/api/hooks';
-import type { VideoStatus } from '../../lib/api/types';
-import { EmptyState, LoadingState, gradientFor } from '../../components/ui/states';
+import { useStats, useWorkspace } from '../../../lib/api/hooks';
+import type { VideoStatus } from '../../../lib/api/types';
+import { EmptyState, LoadingState, gradientFor } from '../../../components/ui/states';
 
 type Badge = 'Rendering' | 'Ready' | 'Draft' | 'Queued' | 'Failed';
 

@@ -39,7 +39,7 @@ export default function LoginPage() {
       setBusy(true);
       void ensureSession().then((isAuthed) => {
         if (isAuthed) {
-          router.push('/');
+          router.push('/dashboard');
         } else {
           setBusy(false);
           setError(SSO_ERROR_MESSAGES.failed ?? null);
@@ -57,7 +57,7 @@ export default function LoginPage() {
     setNeedsVerification(false);
     try {
       await login(email, password);
-      router.push('/');
+      router.push('/dashboard');
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === 'FORBIDDEN') {
         // Login's only 403: correct credentials, unverified email.

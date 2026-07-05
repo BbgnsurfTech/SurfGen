@@ -69,7 +69,7 @@ function EditorContent() {
           title="No video to edit"
           hint="Create a video first — from the New Project button or the dashboard."
           action={
-            <Link href="/" className="mt-2 rounded-full bg-primary px-5 py-2 text-xs font-bold text-white">
+            <Link href="/dashboard" className="mt-2 rounded-full bg-primary px-5 py-2 text-xs font-bold text-white">
               Back to dashboard
             </Link>
           }

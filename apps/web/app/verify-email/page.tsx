@@ -31,7 +31,7 @@ function VerifyContent() {
     verifyEmail(token)
       .then(() => {
         setPhase('done');
-        setTimeout(() => router.replace('/'), REDIRECT_DELAY_MS);
+        setTimeout(() => router.replace('/dashboard'), REDIRECT_DELAY_MS);
       })
       .catch((caught) => {
         setPhase('failed');
