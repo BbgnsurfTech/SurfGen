@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
-import { NotFoundError } from '@surfgen/core';
+import { ForbiddenError, NotFoundError } from '@surfgen/core';
 import { PrismaService } from '../common/prisma.service';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { Principal, RequireOrgRole, type AuthenticatedPrincipal } from '../auth/guards';
@@ -87,10 +87,17 @@ export class OrgsController {
   @RequireOrgRole('admin')
   async inviteMember(
     @Param('orgId') orgId: string,
+    @Principal() principal: AuthenticatedPrincipal,
     @Body(new ZodValidationPipe(InviteMemberSchema)) body: z.infer<typeof InviteMemberSchema>,
   ) {
     const user = await this.prisma.user.findUnique({ where: { email: body.email } });
     if (!user) throw new NotFoundError('User', body.email);
+    const existing = await this.prisma.membership.findUnique({
+      where: { userId_organizationId: { userId: user.id, organizationId: orgId } },
+    });
+    if (existing?.role === 'owner') {
+      await this.assertCanActOnOwner(orgId, principal.userId);
+    }
     return this.prisma.membership.upsert({
       where: { userId_organizationId: { userId: user.id, organizationId: orgId } },
       update: { role: body.role },
@@ -100,8 +107,37 @@ export class OrgsController {
 
   @Delete(':orgId/members/:userId')
   @RequireOrgRole('admin')
-  async removeMember(@Param('orgId') orgId: string, @Param('userId') userId: string) {
+  async removeMember(
+    @Param('orgId') orgId: string,
+    @Param('userId') userId: string,
+    @Principal() principal: AuthenticatedPrincipal,
+  ) {
+    const target = await this.prisma.membership.findUnique({
+      where: { userId_organizationId: { userId, organizationId: orgId } },
+    });
+    if (!target) return { removed: false };
+    if (target.role === 'owner') {
+      await this.assertCanActOnOwner(orgId, principal.userId);
+    }
     await this.prisma.membership.deleteMany({ where: { organizationId: orgId, userId } });
     return { removed: true };
+  }
+
+  /**
+   * Guards any role change or removal targeting an existing owner: only
+   * another owner may act on an owner, and the org must always keep at
+   * least one owner left afterward.
+   */
+  private async assertCanActOnOwner(orgId: string, callerId: string): Promise<void> {
+    const caller = await this.prisma.membership.findUnique({
+      where: { userId_organizationId: { userId: callerId, organizationId: orgId } },
+    });
+    if (caller?.role !== 'owner') {
+      throw new ForbiddenError("Only an owner can change another owner's role or remove them");
+    }
+    const ownerCount = await this.prisma.membership.count({ where: { organizationId: orgId, role: 'owner' } });
+    if (ownerCount <= 1) {
+      throw new ForbiddenError('Cannot remove or demote the last owner of an organization');
+    }
   }
 }
