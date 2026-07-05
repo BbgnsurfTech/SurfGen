@@ -36,6 +36,8 @@ capabilities:
     chain:
       # - provider: avatar-heygen     # cloud — requires env:HEYGEN_API_KEY
       #   priority: 5
+      # - provider: avatar-sadtalker  # local CLI runner — see plugins/avatar-sadtalker/README.md for licensing + setup
+      #   priority: 10
       - provider: avatar-mock
         priority: 100
   lipsync:
