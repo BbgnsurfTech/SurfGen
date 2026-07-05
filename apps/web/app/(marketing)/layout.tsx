@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     title: 'SurfGen — AI avatar video, one pipeline',
     description:
       'Talking photos, voice cloning, lip sync, translation, and a full timeline editor — every AI capability swappable by configuration.',
-    images: [{ url: '/og.webp', width: 1520, height: 760 }],
+    images: [{ url: '/og.webp', width: 1600, height: 800 }],
   },
 };
 
