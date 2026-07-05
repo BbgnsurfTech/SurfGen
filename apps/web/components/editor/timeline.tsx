@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { Track } from '../../lib/api/types';
+import { useToast } from '../ui/toast';
 
 const TRACK_META: Record<Track['kind'], { label: string; icon: LucideIcon; color: string }> = {
   video: { label: 'Video', icon: Video, color: '#8B5E2F' },
@@ -37,7 +38,9 @@ interface TimelineProps {
 }
 
 export function Timeline({ tracks, durationMs, playing, rendering, onTogglePlay, onRender }: TimelineProps) {
+  const flash = useToast();
   const span = Math.max(durationMs, 1);
+  const onZoom = () => flash('Timeline zoom is not wired up yet');
   return (
     <div className="flex h-[184px] flex-none flex-col border-t border-line-dark bg-ink">
       <div className="flex h-[46px] flex-none items-center gap-3.5 border-b border-carbon px-[18px]">
@@ -51,11 +54,15 @@ export function Timeline({ tracks, durationMs, playing, rendering, onTogglePlay,
         <span className="font-mono text-[12.5px] text-sand">00:00 / {formatTimecode(durationMs)}</span>
         <div className="flex-1" />
         <div className="flex items-center gap-1.5 text-taupe">
-          <ZoomOut className="size-[15px]" strokeWidth={1.6} />
-          <div className="relative h-1 w-20 rounded-full bg-line-dark">
+          <button onClick={onZoom} aria-label="Zoom out">
+            <ZoomOut className="size-[15px]" strokeWidth={1.6} />
+          </button>
+          <button onClick={onZoom} aria-label="Timeline zoom" className="relative h-1 w-20 rounded-full bg-line-dark">
             <div className="absolute top-0 left-0 h-full w-[55%] rounded-full bg-camel" />
-          </div>
-          <ZoomIn className="size-[15px]" strokeWidth={1.6} />
+          </button>
+          <button onClick={onZoom} aria-label="Zoom in">
+            <ZoomIn className="size-[15px]" strokeWidth={1.6} />
+          </button>
         </div>
         <button
           onClick={onRender}

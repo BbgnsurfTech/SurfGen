@@ -14,12 +14,12 @@ type Tab = (typeof TABS)[number][0];
 
 function Heading({ display, children }: { display: string; children: React.ReactNode }) {
   return (
-    <div
+    <h2
       className="mt-[26px] mb-3 text-[13px] font-extrabold tracking-[0.06em] text-taupe uppercase"
       style={{ fontFamily: display }}
     >
       {children}
-    </div>
+    </h2>
   );
 }
 

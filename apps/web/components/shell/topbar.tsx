@@ -34,13 +34,16 @@ export function Topbar() {
     <header className="z-5 flex h-[60px] flex-none items-center gap-4 border-b border-line bg-white/92 px-6 backdrop-blur-xl">
       <div className="min-w-0">
         <div className="text-[9.5px] font-bold tracking-[0.14em] text-bronze uppercase">{crumb}</div>
-        <div className="font-display truncate text-[17px] leading-[1.1] font-bold text-ink">{title}</div>
+        <h1 className="font-display truncate text-[17px] leading-[1.1] font-bold text-ink">{title}</h1>
       </div>
       <div className="flex-1" />
-      <div className="flex h-[38px] w-60 items-center gap-2 rounded-full border border-line bg-cream px-3.5 text-taupe">
+      <button
+        onClick={() => flash('Search is not wired up yet — filter within each page for now')}
+        className="flex h-[38px] w-60 items-center gap-2 rounded-full border border-line bg-cream px-3.5 text-taupe"
+      >
         <Search className="size-[15px]" strokeWidth={1.6} />
         <span className="text-[13px]">Search projects, assets…</span>
-      </div>
+      </button>
       <button
         onClick={() =>
           flash(apiUp ? 'API reachable — health check passed' : 'API unreachable — start the stack (scripts/install.sh)')
