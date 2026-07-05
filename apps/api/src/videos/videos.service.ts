@@ -42,6 +42,19 @@ export class VideosService {
     });
     if (!project) throw new NotFoundError('Project', projectId);
 
+    if (input.avatarId) {
+      const avatar = await this.prisma.avatar.findFirst({
+        where: { id: input.avatarId, organizationId: orgId, deletedAt: null },
+      });
+      if (!avatar) throw new NotFoundError('Avatar', input.avatarId);
+    }
+    if (input.voiceId) {
+      const voice = await this.prisma.voice.findFirst({
+        where: { id: input.voiceId, organizationId: orgId, deletedAt: null },
+      });
+      if (!voice) throw new NotFoundError('Voice', input.voiceId);
+    }
+
     const video = await this.prisma.video.create({
       data: {
         organizationId: orgId,
