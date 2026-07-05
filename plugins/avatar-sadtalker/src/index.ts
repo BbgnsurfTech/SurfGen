@@ -157,7 +157,7 @@ export class SadTalkerAvatarProvider implements AIProvider<AvatarInput, AvatarOu
         data: { video: { storageKey: key, contentType: 'video/mp4' }, hasAlpha: false },
       };
     } finally {
-      await rm(workDir, { recursive: true, force: true });
+      await rm(workDir, { recursive: true, force: true }).catch(() => {});
     }
   }
 

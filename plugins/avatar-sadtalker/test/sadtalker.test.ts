@@ -143,4 +143,46 @@ describe('SadTalkerAvatarProvider', () => {
     expect(descriptor.costHint?.amount).toBeGreaterThan(0);
     expect(descriptor.features.offline).toBe(true);
   });
+
+  test('resultDir has no .mp4 after a clean exit — ProviderError', async () => {
+    const storage = new MemoryStorage();
+    await storage.put('img.png', new TextEncoder().encode('x'));
+    await storage.put('audio.wav', new TextEncoder().encode('x'));
+    const provider = new SadTalkerAvatarProvider();
+    const noMp4Shim = join(shimDir, 'no-mp4-shim.mjs');
+    writeFileSync(
+      noMp4Shim,
+      `#!/usr/bin/env node
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+const args = process.argv.slice(2);
+const flag = (name) => args[args.indexOf(name) + 1];
+const resultDir = flag('--result_dir');
+const subDir = join(resultDir, '2026_07_05_12.00.00');
+mkdirSync(subDir, { recursive: true });
+process.exit(0);
+`,
+    );
+    chmodSync(noMp4Shim, 0o755);
+    await provider.initialize({
+      id: 'avatar-sadtalker',
+      capability: 'avatar',
+      enabled: true,
+      priority: 10,
+      options: { pythonCommand: 'node', scriptPath: noMp4Shim, storage },
+    });
+
+    await expect(
+      collectFinalOutput(
+        provider.generate(
+          {
+            avatarRef: { image: { storageKey: 'img.png', contentType: 'image/png' } },
+            drivingAudio: { storageKey: 'audio.wav', contentType: 'audio/wav' },
+            resolution: { width: 1920, height: 1080 },
+          },
+          {},
+        ),
+      ),
+    ).rejects.toThrow(/no \.mp4 produced/);
+  });
 });
