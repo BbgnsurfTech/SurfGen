@@ -67,6 +67,19 @@ async function makeProvider(storage: MemoryStorage = new MemoryStorage()) {
 }
 
 describe('SadTalkerAvatarProvider', () => {
+  test('initialize() rejects config missing options.scriptPath', async () => {
+    const provider = new SadTalkerAvatarProvider();
+    await expect(
+      provider.initialize({
+        id: 'avatar-sadtalker',
+        capability: 'avatar',
+        enabled: true,
+        priority: 10,
+        options: { pythonCommand: 'node' },
+      }),
+    ).rejects.toThrow(/requires options\.scriptPath/);
+  });
+
   test('animates a photo avatar and uploads the result', async () => {
     const storage = new MemoryStorage();
     // Pre-seed a fake source image + audio so the provider's own materialize step finds them.

@@ -40,6 +40,11 @@ async function materialize(storage: StoragePort, ref: MediaRef, targetPath: stri
   return targetPath;
 }
 
+/** Image extension SadTalker's own loader expects to match the real content type. */
+function imageExtensionFor(contentType: string): string {
+  return contentType === 'image/jpeg' ? 'jpg' : 'png';
+}
+
 /**
  * SadTalker timestamps a subdirectory under --result_dir and moves the final
  * video there; the exact filename isn't predictable ahead of time, so find
@@ -120,13 +125,19 @@ export class SadTalkerAvatarProvider implements AIProvider<AvatarInput, AvatarOu
     const storage = this.options.storage;
     if (!storage) throw new ConfigurationError('avatar-sadtalker requires options.storage to be injected');
 
-    const workDir = mkdtempSync(join(tmpdir(), 'surfgen-sadtalker-'));
-    const resultDir = join(workDir, 'results');
-    await mkdir(resultDir, { recursive: true });
-
+    let workDir: string | undefined;
     try {
+      workDir = mkdtempSync(join(tmpdir(), 'surfgen-sadtalker-'));
+      const resultDir = join(workDir, 'results');
+      await mkdir(resultDir, { recursive: true });
+
       yield { type: 'progress', percent: 5, message: 'preparing inputs' };
-      const sourceImagePath = await materialize(storage, input.avatarRef.image, join(workDir, 'source.png'));
+      const sourceExtension = imageExtensionFor(input.avatarRef.image.contentType);
+      const sourceImagePath = await materialize(
+        storage,
+        input.avatarRef.image,
+        join(workDir, `source.${sourceExtension}`),
+      );
       const drivenAudioPath = await materialize(storage, input.drivingAudio, join(workDir, 'audio.wav'));
 
       yield { type: 'progress', percent: 15, message: 'animating face' };
@@ -157,7 +168,7 @@ export class SadTalkerAvatarProvider implements AIProvider<AvatarInput, AvatarOu
         data: { video: { storageKey: key, contentType: 'video/mp4' }, hasAlpha: false },
       };
     } finally {
-      await rm(workDir, { recursive: true, force: true }).catch(() => {});
+      if (workDir) await rm(workDir, { recursive: true, force: true }).catch(() => {});
     }
   }
 
