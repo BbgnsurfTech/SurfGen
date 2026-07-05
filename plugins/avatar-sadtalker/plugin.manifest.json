@@ -1,7 +1,7 @@
 {
   "name": "avatar-sadtalker",
   "version": "0.1.0",
-  "description": "Local talking-head avatar animation via SadTalker (Apache-2.0 code; required checkpoints — Deep3DFaceReconstruction, Basel Face Model — carry separate non-commercial license terms the deploying operator must obtain and comply with; see README.md",
+  "description": "Local talking-head avatar animation via SadTalker (Apache-2.0 code; incorporates Wav2Lip components under research/non-commercial license; required checkpoints — Deep3DFaceReconstruction, Basel Face Model — carry separate non-commercial academic license terms; see README.md for full details)",
   "sdkVersion": "^0.1.0",
   "license": "Apache-2.0",
   "capabilities": ["avatar"],
