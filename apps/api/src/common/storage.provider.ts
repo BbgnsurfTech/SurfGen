@@ -4,8 +4,11 @@ import { loadAll } from '@surfgen/config';
 import { unwrap, type StoragePort } from '@surfgen/core';
 import { resolveSecretRef } from '@surfgen/plugin-sdk';
 import { LocalStorage, S3Storage } from '@surfgen/storage';
+import { deriveSecret } from './jwt-secret';
 
 export const STORAGE = Symbol('STORAGE');
+/** Purpose label for the local-media link HMAC — keep in sync with MediaController. */
+export const MEDIA_SECRET_LABEL = 'media';
 
 /** Same config-driven storage selection the workers use (config/storage.yaml). */
 export const storageProvider: Provider = {
@@ -24,6 +27,9 @@ export const storageProvider: Provider = {
         forcePathStyle: s3.forcePathStyle,
       });
     }
-    return new LocalStorage(bundle.storage.local?.rootDir ?? './storage/local');
+    return new LocalStorage(bundle.storage.local?.rootDir ?? './storage/local', {
+      publicBaseUrl: process.env.PUBLIC_API_URL ?? 'http://localhost:4000',
+      signingSecret: deriveSecret(MEDIA_SECRET_LABEL),
+    });
   },
 };

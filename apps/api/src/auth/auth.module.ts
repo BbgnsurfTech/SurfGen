@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaService } from '../common/prisma.service';
+import { getJwtSecret } from '../common/jwt-secret';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { GoogleOAuthService } from './google-oauth.service';
@@ -12,13 +13,7 @@ import { MailerService } from './mailer.service';
 @Module({
   imports: [
     JwtModule.registerAsync({
-      useFactory: () => {
-        const secret = process.env.JWT_SECRET;
-        if (!secret && process.env.NODE_ENV === 'production') {
-          throw new Error('JWT_SECRET must be set in production');
-        }
-        return { secret: secret ?? 'surfgen-dev-secret-do-not-use-in-prod' };
-      },
+      useFactory: () => ({ secret: getJwtSecret() }),
     }),
   ],
   controllers: [AuthController],

@@ -16,6 +16,14 @@ export interface Org {
   role: string;
 }
 
+export interface Me {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl: string | null;
+  isSuperAdmin: boolean;
+}
+
 export interface Project {
   id: string;
   name: string;

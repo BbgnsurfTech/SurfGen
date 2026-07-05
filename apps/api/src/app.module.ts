@@ -25,6 +25,7 @@ import { EditorController } from './videos/editor.controller';
 import { VideosController } from './videos/videos.controller';
 import { EVENT_BUS, VideosService } from './videos/videos.service';
 import { EVENT_SUBSCRIBER, ProgressGateway } from './ws/progress.gateway';
+import { MediaController } from './media/media.controller';
 
 const logger = createLogger({ service: 'surfgen-api' });
 
@@ -63,6 +64,7 @@ const eventBusProvider = {
     BillingAdminController,
     BillingController,
     BillingWebhookController,
+    MediaController,
   ],
   providers: [
     PrismaService,

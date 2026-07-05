@@ -12,6 +12,7 @@ import type {
   PublicPlans,
   Avatar,
   BrandKit,
+  Me,
   Monitor,
   Org,
   Plugin,
@@ -48,6 +49,16 @@ export function useHealth() {
     },
     refetchInterval: 30_000,
     retry: false,
+  });
+}
+
+/** The signed-in principal's own profile — drives the sidebar account chip. */
+export function useMe() {
+  const authed = useAuthed();
+  return useQuery({
+    queryKey: ['me'],
+    enabled: authed,
+    queryFn: async () => (await api<Me>('GET', '/v1/auth/me')).data,
   });
 }
 
@@ -161,6 +172,19 @@ function useOrgMutation<TArgs, TResult = unknown>(
 export const useCreateAvatar = () =>
   useOrgMutation<{ name: string; kind: Avatar['kind'] }>(['avatars'], async (orgId, body) =>
     api('POST', `/v1/orgs/${orgId}/avatars`, body),
+  );
+
+/** Creates the workspace's first project — used by the New Project modal when none exists yet. */
+export const useCreateProject = () =>
+  useOrgMutation<{ name: string }, Project>(['workspace'], async (orgId, body) =>
+    (await api<Project>('POST', `/v1/orgs/${orgId}/projects`, body)).data,
+  );
+
+export const useCreateVideo = () =>
+  useOrgMutation<{ projectId: string; title: string }, Video>(
+    ['workspace'],
+    async (orgId, { projectId, ...body }) =>
+      (await api<Video>('POST', `/v1/orgs/${orgId}/projects/${projectId}/videos`, body)).data,
   );
 
 export const useCreateBrandKit = () =>

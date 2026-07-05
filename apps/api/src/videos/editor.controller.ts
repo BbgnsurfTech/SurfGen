@@ -45,7 +45,9 @@ export class EditorController {
   ) {}
 
   private async requireVideo(orgId: string, videoId: string) {
-    const video = await this.prisma.video.findFirst({ where: { id: videoId, organizationId: orgId } });
+    const video = await this.prisma.video.findFirst({
+      where: { id: videoId, organizationId: orgId, deletedAt: null },
+    });
     if (!video) throw new NotFoundError('Video', videoId);
     return video;
   }
@@ -123,14 +125,23 @@ export class EditorController {
   @RequireOrgRole('viewer')
   async output(@Param('orgId') orgId: string, @Param('videoId') videoId: string) {
     const video = await this.requireVideo(orgId, videoId);
-    const output = video.output as { media?: string; thumbnail?: string } | null;
+    const output = video.output as {
+      media?: { storageKey: string; contentType: string; durationMs: number };
+      thumbnail?: { storageKey: string; contentType: string } | null;
+    } | null;
     if (video.status !== 'ready' || !output?.media) {
       throw new ValidationError('video has no rendered output yet');
     }
     const [media, thumbnail] = await Promise.all([
-      this.storage.signedUrl(output.media, { method: 'GET', expiresInSeconds: OUTPUT_URL_TTL_SECONDS }),
+      this.storage.signedUrl(output.media.storageKey, {
+        method: 'GET',
+        expiresInSeconds: OUTPUT_URL_TTL_SECONDS,
+      }),
       output.thumbnail
-        ? this.storage.signedUrl(output.thumbnail, { method: 'GET', expiresInSeconds: OUTPUT_URL_TTL_SECONDS })
+        ? this.storage.signedUrl(output.thumbnail.storageKey, {
+            method: 'GET',
+            expiresInSeconds: OUTPUT_URL_TTL_SECONDS,
+          })
         : Promise.resolve(null),
     ]);
     return { media, thumbnail, expiresInSeconds: OUTPUT_URL_TTL_SECONDS };

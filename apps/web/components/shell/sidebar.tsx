@@ -8,6 +8,7 @@ import {
   CreditCard,
   Gauge,
   LayoutDashboard,
+  LogOut,
   Palette,
   PlugZap,
   UserRoundCog,
@@ -18,6 +19,10 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { logout } from '../../lib/api/client';
+import { useMe, useOrg } from '../../lib/api/hooks';
+import { useToast } from '../ui/toast';
 
 interface NavItem {
   href: string;
@@ -79,6 +84,72 @@ function NavGroup({ title, items, pathname }: { title: string; items: NavItem[];
   );
 }
 
+function initials(name: string): string {
+  const [first, ...rest] = name.trim().split(/\s+/);
+  const last = rest.at(-1);
+  return ((first?.[0] ?? '') + (last?.[0] ?? '')).toUpperCase() || '?';
+}
+
+function AccountMenu() {
+  const me = useMe();
+  const org = useOrg();
+  const flash = useToast();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClickOutside = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative border-t border-carbon p-3">
+      {open && (
+        <div
+          role="menu"
+          className="absolute inset-x-3 bottom-full mb-2 overflow-hidden rounded-xl border border-carbon bg-espresso shadow-[0_16px_40px_rgba(0,0,0,.35)]"
+        >
+          <div className="border-b border-carbon px-3 py-2.5">
+            <div className="truncate text-[12.5px] font-semibold text-white">{me.data?.name ?? '—'}</div>
+            <div className="truncate text-[10.5px] text-taupe">{me.data?.email ?? '—'}</div>
+          </div>
+          <button
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              logout();
+              flash('Logged out');
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[12.5px] font-semibold text-stone hover:bg-white/5 hover:text-shell"
+          >
+            <LogOut className="size-[15px]" strokeWidth={1.6} />
+            Log out
+          </button>
+        </div>
+      )}
+      <button
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="flex w-full items-center gap-2.5 rounded-xl bg-espresso px-2.5 py-2 text-left hover:bg-espresso/80"
+      >
+        <div className="font-display flex size-8 flex-none items-center justify-center rounded-full bg-gradient-to-br from-camel to-primary text-[13px] font-bold text-white">
+          {me.data ? initials(me.data.name) : '···'}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[12.5px] font-semibold text-white">{me.data?.name ?? 'Loading…'}</div>
+          <div className="truncate text-[10.5px] text-taupe capitalize">{org.data?.role ?? '—'}</div>
+        </div>
+        <ChevronsUpDown className="size-[15px] flex-none text-taupe" strokeWidth={1.6} />
+      </button>
+    </div>
+  );
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   return (
@@ -100,18 +171,7 @@ export function Sidebar() {
         </div>
       </nav>
 
-      <div className="border-t border-carbon p-3">
-        <div className="flex items-center gap-2.5 rounded-xl bg-espresso px-2.5 py-2">
-          <div className="font-display flex size-8 flex-none items-center justify-center rounded-full bg-gradient-to-br from-camel to-primary text-[13px] font-bold text-white">
-            AK
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[12.5px] font-semibold text-white">A. Kabir</div>
-            <div className="text-[10.5px] text-taupe">Platform Engineer</div>
-          </div>
-          <ChevronsUpDown className="size-[15px] text-taupe" strokeWidth={1.6} />
-        </div>
-      </div>
+      <AccountMenu />
     </aside>
   );
 }

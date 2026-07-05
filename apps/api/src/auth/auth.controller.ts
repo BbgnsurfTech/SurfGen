@@ -5,10 +5,11 @@ import { UnauthorizedError } from '@surfgen/core';
 import { z } from 'zod';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import '@fastify/cookie'; // fastify type augmentation: request.cookies / reply.setCookie
+import { PrismaService } from '../common/prisma.service';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { AuthService, type AuthTokens } from './auth.service';
 import { GoogleOAuthService } from './google-oauth.service';
-import { Public } from './guards';
+import { Principal, Public, type AuthenticatedPrincipal } from './guards';
 
 const RegisterSchema = z.object({
   email: z.string().email(),
@@ -85,7 +86,19 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly googleOAuth: GoogleOAuthService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  @Get('me')
+  @ApiOperation({ summary: 'The signed-in principal’s profile' })
+  async me(@Principal() principal: AuthenticatedPrincipal) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: principal.userId },
+      select: { id: true, email: true, name: true, avatarUrl: true, isSuperAdmin: true },
+    });
+    if (!user) throw new UnauthorizedError('Invalid or expired access token');
+    return user;
+  }
 
   /** Set the browser session cookie; tokens stay in the body for non-browser clients. */
   private withSessionCookie(reply: FastifyReply, tokens: AuthTokens): AuthTokens {

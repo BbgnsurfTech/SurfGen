@@ -3,14 +3,19 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { afterAll, describe, expect, test } from 'vitest';
-import { LocalStorage } from '../src/local-storage.js';
+import { LocalStorage, type LocalMediaLinkOptions } from '../src/local-storage.js';
 import { assetKey, artifactKey, sanitizeSegment, videoOutputKey } from '../src/keys.js';
+import { signMediaKey, verifyMediaKey } from '../src/media-signature.js';
 
 const tempDirs: string[] = [];
-const makeStorage = () => {
+const makeStorage = (media?: LocalMediaLinkOptions) => {
   const dir = mkdtempSync(join(tmpdir(), 'surfgen-storage-'));
   tempDirs.push(dir);
-  return new LocalStorage(dir);
+  return new LocalStorage(dir, media);
+};
+const testMedia: LocalMediaLinkOptions = {
+  publicBaseUrl: 'http://localhost:4000',
+  signingSecret: 'test-secret',
 };
 afterAll(() => tempDirs.forEach((dir) => rmSync(dir, { recursive: true, force: true })));
 
@@ -105,10 +110,48 @@ describe('LocalStorage contract', () => {
     expect((await storage.list('del/')).objects).toEqual([]);
   });
 
-  test('signedUrl encodes method and expiry', async () => {
-    const storage = makeStorage();
+  test('signedUrl builds a verifiable /v1/media link when media config is present', async () => {
+    const storage = makeStorage(testMedia);
     const url = await storage.signedUrl('a/b.mp4', { method: 'GET', expiresInSeconds: 60 });
-    expect(url).toMatch(/^local:\/\/a\/b\.mp4\?method=GET&expires=\d+$/);
+    expect(url).toMatch(/^http:\/\/localhost:4000\/v1\/media\?key=a%2Fb\.mp4&expires=\d+&sig=[0-9a-f]{64}$/);
+
+    const params = new URL(url).searchParams;
+    expect(verifyMediaKey(testMedia.signingSecret, 'a/b.mp4', Number(params.get('expires')), params.get('sig')!)).toBe(
+      true,
+    );
+  });
+
+  test('signedUrl rejects PUT (no local upload endpoint yet)', async () => {
+    const storage = makeStorage(testMedia);
+    await expect(storage.signedUrl('a/b.mp4', { method: 'PUT', expiresInSeconds: 60 })).rejects.toThrow(
+      /does not support signed upload/,
+    );
+  });
+
+  test('signedUrl throws loudly instead of returning a dead link when unconfigured', async () => {
+    const storage = makeStorage();
+    await expect(storage.signedUrl('a/b.mp4', { method: 'GET', expiresInSeconds: 60 })).rejects.toThrow(
+      /requires media link config/,
+    );
+  });
+});
+
+describe('media-signature', () => {
+  test('verifyMediaKey accepts a freshly signed key', () => {
+    const { expires, sig } = signMediaKey('secret', 'org/1/video.mp4', 60);
+    expect(verifyMediaKey('secret', 'org/1/video.mp4', expires, sig)).toBe(true);
+  });
+
+  test('verifyMediaKey rejects a tampered key, tampered signature, wrong secret, and expired link', () => {
+    const { expires, sig } = signMediaKey('secret', 'org/1/video.mp4', 60);
+    expect(verifyMediaKey('secret', 'org/1/OTHER.mp4', expires, sig)).toBe(false);
+    expect(verifyMediaKey('secret', 'org/1/video.mp4', expires, `${sig.slice(0, -2)}00`)).toBe(false);
+    expect(verifyMediaKey('wrong-secret', 'org/1/video.mp4', expires, sig)).toBe(false);
+    expect(verifyMediaKey('secret', 'org/1/video.mp4', Date.now() - 1000, sig)).toBe(false);
+  });
+
+  test('verifyMediaKey rejects malformed signatures without throwing', () => {
+    expect(verifyMediaKey('secret', 'k', Date.now() + 60_000, 'not-hex-!!')).toBe(false);
   });
 });
 

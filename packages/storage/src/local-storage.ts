@@ -11,20 +11,30 @@ import {
   type StorageObjectStat,
   type StoragePort,
 } from '@surfgen/core';
+import { signMediaKey } from './media-signature.js';
 
 const META_SUFFIX = '.surfgen-meta.json';
+
+export interface LocalMediaLinkOptions {
+  /** Base URL the browser can reach the API at, e.g. PUBLIC_API_URL. */
+  publicBaseUrl: string;
+  /** HMAC key used to sign and verify media links. */
+  signingSecret: string;
+}
 
 /**
  * Filesystem StoragePort adapter for development and single-node deployments.
  * Writes are atomic (temp file + rename); keys are confined to the root dir.
- * signedUrl returns local:// pseudo-URLs — dev only; the API serves these
- * through an authenticated streaming endpoint instead of a CDN.
+ * signedUrl returns a signed link to the API's GET /v1/media endpoint, which
+ * verifies the signature and streams the file — there is no CDN in this mode.
  */
 export class LocalStorage implements StoragePort {
   private readonly root: string;
+  private readonly media?: LocalMediaLinkOptions;
 
-  constructor(rootDir: string) {
+  constructor(rootDir: string, media?: LocalMediaLinkOptions) {
     this.root = resolve(rootDir);
+    this.media = media;
   }
 
   /** Resolve a key inside the root; reject traversal attempts. */
@@ -164,9 +174,19 @@ export class LocalStorage implements StoragePort {
     options: { method: 'GET' | 'PUT'; expiresInSeconds: number },
   ): Promise<string> {
     this.resolveKey(storageKey); // validation only
-    const expires = Date.now() + options.expiresInSeconds * 1000;
-    // Dev-only pseudo-URL; production deployments use the S3 adapter.
-    return `local://${storageKey}?method=${options.method}&expires=${expires}`;
+    if (options.method === 'PUT') {
+      // No local upload endpoint exists yet (see docs/roadmap.md — asset upload API).
+      throw new StorageError('LocalStorage does not support signed upload URLs yet', { retryable: false });
+    }
+    if (!this.media) {
+      throw new StorageError(
+        'LocalStorage.signedUrl requires media link config (publicBaseUrl + signingSecret)',
+        { retryable: false },
+      );
+    }
+    const { expires, sig } = signMediaKey(this.media.signingSecret, storageKey, options.expiresInSeconds);
+    const params = new URLSearchParams({ key: storageKey, expires: String(expires), sig });
+    return `${this.media.publicBaseUrl}/v1/media?${params.toString()}`;
   }
 
   private guessContentType(storageKey: string): string {
