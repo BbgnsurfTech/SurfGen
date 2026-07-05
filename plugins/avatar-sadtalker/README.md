@@ -5,10 +5,10 @@ run through its `inference.py` CLI — no cloud credentials, no network calls.
 
 ## Licensing — read before enabling in production
 
-SadTalker's own code is Apache 2.0. It depends on third-party model
-checkpoints and incorporates research-only components with **separate, more restrictive licenses**:
+SadTalker's own code is Apache 2.0, same as this plugin's wrapper code. It
+depends on third-party model checkpoints and incorporates research-only
+components under **separate, more restrictive licenses**:
 
-- **Apache-2.0 code** — SadTalker itself and this plugin's wrapper code.
 - **Wav2Lip components** — SadTalker incorporates ideas and checkpoints associated with Wav2Lip,
   whose original license is research/non-commercial only.
 - **Deep3DFaceReconstruction** and the **Basel Face Model (BFM)** — both
@@ -43,3 +43,12 @@ character avatars are not handled by this provider.
 Performance: SadTalker is GPU-recommended. It runs on CPU with `--cpu`-style
 flags in the upstream project but is considerably slower — plan render-queue
 timeouts accordingly for CPU-only deployments.
+
+## Operational notes
+
+`health()` uses the shared CLI runner's 5-second probe timeout. A cold GPU or
+a slow `torch` import on the first invocation can exceed that window, which
+reads as unhealthy and makes the provider registry fail over to
+`avatar-mock` even though a longer-running request would have succeeded.
+Warm the Python process (or run a manual inference once) before relying on
+health checks in production.
