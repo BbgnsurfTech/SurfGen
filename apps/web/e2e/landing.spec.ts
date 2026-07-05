@@ -22,6 +22,13 @@ test('signed-out /dashboard redirects to login', async ({ page }) => {
   await page.waitForURL('**/login');
 });
 
+test('hero CTA reaches signup', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Start creating free' }).click();
+  await page.waitForURL('**/signup');
+  await expect(page.getByText('Create your account')).toBeVisible();
+});
+
 for (const width of [320, 768, 1440]) {
   test(`no horizontal overflow at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });

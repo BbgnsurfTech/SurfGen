@@ -18,6 +18,7 @@ const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-dm-sans' });
 const sora = Sora({ subsets: ['latin'], variable: '--font-sora' });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
   title: 'SurfGen — AI video generation platform',
   description:
     'Provider-agnostic AI avatar video platform. Talking photos, voice cloning, lip sync, translation — cloud or fully local, swapped by configuration alone.',
