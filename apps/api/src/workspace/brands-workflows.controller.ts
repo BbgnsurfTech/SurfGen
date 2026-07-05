@@ -44,7 +44,10 @@ export class BrandsWorkflowsController {
   @Get('brand-kits')
   @RequireOrgRole('viewer')
   listBrandKits(@Param('orgId') orgId: string) {
-    return this.prisma.brandKit.findMany({ where: { organizationId: orgId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.brandKit.findMany({
+      where: { organizationId: orgId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   @Post('brand-kits')
@@ -63,7 +66,9 @@ export class BrandsWorkflowsController {
     @Param('brandKitId') brandKitId: string,
     @Body(new ZodValidationPipe(UpdateBrandKitSchema)) body: z.infer<typeof UpdateBrandKitSchema>,
   ) {
-    const kit = await this.prisma.brandKit.findFirst({ where: { id: brandKitId, organizationId: orgId } });
+    const kit = await this.prisma.brandKit.findFirst({
+      where: { id: brandKitId, organizationId: orgId, deletedAt: null },
+    });
     if (!kit) throw new NotFoundError('BrandKit', brandKitId);
     return this.prisma.brandKit.update({ where: { id: brandKitId }, data: body });
   }
@@ -71,7 +76,9 @@ export class BrandsWorkflowsController {
   @Delete('brand-kits/:brandKitId')
   @RequireOrgRole('editor')
   async deleteBrandKit(@Param('orgId') orgId: string, @Param('brandKitId') brandKitId: string) {
-    const kit = await this.prisma.brandKit.findFirst({ where: { id: brandKitId, organizationId: orgId } });
+    const kit = await this.prisma.brandKit.findFirst({
+      where: { id: brandKitId, organizationId: orgId, deletedAt: null },
+    });
     if (!kit) throw new NotFoundError('BrandKit', brandKitId);
     return this.prisma.brandKit.update({ where: { id: brandKitId }, data: { deletedAt: new Date() } });
   }
@@ -80,7 +87,10 @@ export class BrandsWorkflowsController {
   @Get('workflows')
   @RequireOrgRole('viewer')
   listWorkflows(@Param('orgId') orgId: string) {
-    return this.prisma.workflow.findMany({ where: { organizationId: orgId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.workflow.findMany({
+      where: { organizationId: orgId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   @Post('workflows')
@@ -104,7 +114,9 @@ export class BrandsWorkflowsController {
   @Post('workflows/:workflowId/runs')
   @RequireOrgRole('editor')
   async queueRun(@Param('orgId') orgId: string, @Param('workflowId') workflowId: string) {
-    const workflow = await this.prisma.workflow.findFirst({ where: { id: workflowId, organizationId: orgId } });
+    const workflow = await this.prisma.workflow.findFirst({
+      where: { id: workflowId, organizationId: orgId, deletedAt: null },
+    });
     if (!workflow) throw new NotFoundError('Workflow', workflowId);
     return this.prisma.workflowRun.create({
       data: { workflowId, status: 'pending', input: {} },
@@ -118,7 +130,9 @@ export class BrandsWorkflowsController {
     @Param('workflowId') workflowId: string,
     @Body(new ZodValidationPipe(UpdateWorkflowSchema)) body: z.infer<typeof UpdateWorkflowSchema>,
   ) {
-    const workflow = await this.prisma.workflow.findFirst({ where: { id: workflowId, organizationId: orgId } });
+    const workflow = await this.prisma.workflow.findFirst({
+      where: { id: workflowId, organizationId: orgId, deletedAt: null },
+    });
     if (!workflow) throw new NotFoundError('Workflow', workflowId);
     return this.prisma.workflow.update({
       where: { id: workflowId },

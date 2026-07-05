@@ -23,7 +23,7 @@ export class StatsController {
           pipelineRun: { organizationId: orgId },
         },
       }),
-      this.prisma.workflow.count({ where: { organizationId: orgId, isEnabled: true } }),
+      this.prisma.workflow.count({ where: { organizationId: orgId, isEnabled: true, deletedAt: null } }),
       this.prisma.pipelineRun.findMany({
         where: { organizationId: orgId, status: 'completed', startedAt: { not: null }, finishedAt: { not: null } },
         select: { startedAt: true, finishedAt: true },

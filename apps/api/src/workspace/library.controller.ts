@@ -29,7 +29,7 @@ export class LibraryController {
   @RequireOrgRole('viewer')
   listAvatars(@Param('orgId') orgId: string) {
     return this.prisma.avatar.findMany({
-      where: { organizationId: orgId },
+      where: { organizationId: orgId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
       include: { versions: { where: { isActive: true }, take: 1 } },
     });
@@ -47,7 +47,9 @@ export class LibraryController {
   @Delete('avatars/:avatarId')
   @RequireOrgRole('editor')
   async deleteAvatar(@Param('orgId') orgId: string, @Param('avatarId') avatarId: string) {
-    const avatar = await this.prisma.avatar.findFirst({ where: { id: avatarId, organizationId: orgId } });
+    const avatar = await this.prisma.avatar.findFirst({
+      where: { id: avatarId, organizationId: orgId, deletedAt: null },
+    });
     if (!avatar) throw new NotFoundError('Avatar', avatarId);
     return this.prisma.avatar.update({ where: { id: avatarId }, data: { deletedAt: new Date() } });
   }
@@ -55,7 +57,10 @@ export class LibraryController {
   @Get('voices')
   @RequireOrgRole('viewer')
   listVoices(@Param('orgId') orgId: string) {
-    return this.prisma.voice.findMany({ where: { organizationId: orgId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.voice.findMany({
+      where: { organizationId: orgId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   // Non-cloned voices only: cloning requires a consent token and runs through
