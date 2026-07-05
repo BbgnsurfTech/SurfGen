@@ -63,12 +63,28 @@ export class MailerService {
       </div>`;
 
     if (!this.transport) {
-      logger.info({ to, verifyUrl }, 'SMTP not configured — verification link logged instead');
+      // verifyUrl's token query param is itself a login credential (visiting
+      // it both verifies the address and issues session tokens) — the
+      // logger's key-based redaction can't catch a secret embedded inside a
+      // URL string, so it's stripped here before the line is ever built.
+      logger.info({ to, verifyUrl: redactTokenParam(verifyUrl) }, 'SMTP not configured — verification link logged (token redacted)');
       return;
     }
     await this.transport.sendMail({ from: this.from, to, subject, text, html });
     logger.info({ to }, 'verification email sent');
   }
+}
+
+/** Replaces a URL's `token` query param value so it's safe to log. */
+export function redactTokenParam(url: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return '[unparseable url]';
+  }
+  if (parsed.searchParams.has('token')) parsed.searchParams.set('token', '[redacted]');
+  return parsed.toString();
 }
 
 function escapeHtml(value: string): string {
