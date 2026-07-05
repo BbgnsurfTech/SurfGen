@@ -9,22 +9,27 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { createLogger, initTracing } from '@surfgen/telemetry';
 import { AppModule } from './app.module';
+import { maxRequestsFor } from './common/rate-limit-config';
 
 const logger = createLogger({ service: 'surfgen-api' });
 
 async function bootstrap(): Promise<void> {
   const tracing = await initTracing({ serviceName: 'surfgen-api' });
 
+  // Only trust X-Forwarded-For when a real reverse proxy sits in front (set
+  // TRUST_PROXY=true there). Trusting it unconditionally lets any client
+  // spoof the header to get a fresh rate-limit bucket on every request.
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ trustProxy: true, bodyLimit: 50 * 1024 * 1024 }),
+    new FastifyAdapter({ trustProxy: process.env.TRUST_PROXY === 'true', bodyLimit: 50 * 1024 * 1024 }),
     { logger: false, rawBody: true }, // rawBody: Paystack webhook HMAC is computed over the exact bytes
   );
 
   await app.register(helmet, { contentSecurityPolicy: false }); // API responses are JSON; CSP is set by the web app
   await app.register(cookie); // httpOnly refresh-token cookie for browser sessions
   await app.register(rateLimit, {
-    max: Number(process.env.RATE_LIMIT_MAX ?? 300),
+    max: (req) =>
+      maxRequestsFor(req.url, Number(process.env.RATE_LIMIT_MAX ?? 300), Number(process.env.RATE_LIMIT_AUTH_MAX ?? 10)),
     timeWindow: '1 minute',
   });
 
