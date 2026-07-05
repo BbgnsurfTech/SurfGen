@@ -42,6 +42,25 @@ export const Principal = createParamDecorator(
 
 const ROLE_RANK: Record<string, number> = { viewer: 0, editor: 1, admin: 2, owner: 3 };
 
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+/** 'write' for mutating HTTP methods, 'read' otherwise. */
+export function requiredApiKeyScope(method: string): 'read' | 'write' {
+  return MUTATING_METHODS.has(method.toUpperCase()) ? 'write' : 'read';
+}
+
+/**
+ * True for JWT principals (scopes undefined — governed by org role alone) or
+ * an API key whose scopes include what this method requires. False keys
+ * (e.g. a 'read'-only key) previously fell through to org-role checks alone,
+ * so a leaked read-only key could still mint new keys, register webhooks, or
+ * make any other mutating call the underlying user's role allowed.
+ */
+export function hasRequiredScope(method: string, scopes: string[] | undefined): boolean {
+  if (!scopes) return true;
+  return scopes.includes(requiredApiKeyScope(method));
+}
+
 /**
  * Unified authentication guard: Bearer JWT or X-Api-Key. Attaches
  * request.principal. Routes marked @Public() skip authentication.
@@ -64,6 +83,10 @@ export class AuthGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<RequestWithAuth>();
     request.principal = await this.authenticate(request);
+
+    if (!hasRequiredScope(request.method, request.principal.scopes)) {
+      throw new ForbiddenError(`API key is missing the '${requiredApiKeyScope(request.method)}' scope`);
+    }
 
     const requiresSuperAdmin = this.reflector.getAllAndOverride<boolean>(SUPER_ADMIN_KEY, [
       context.getHandler(),
