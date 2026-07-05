@@ -1,6 +1,9 @@
+import 'reflect-metadata';
 import { createHmac } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { ConfigurationError, UnauthorizedError } from '@surfgen/core';
+import { PUBLIC_KEY } from '../src/auth/guards';
+import { BillingController } from '../src/billing/billing.controller';
 import { BillingService } from '../src/billing/billing.service';
 import { sealSecret } from '../src/common/secret-box';
 
@@ -290,5 +293,12 @@ describe('admin controller guard', () => {
     const { SUPER_ADMIN_KEY } = await import('../src/auth/guards');
     const { BillingAdminController } = await import('../src/billing/billing-admin.controller');
     expect(Reflect.getMetadata(SUPER_ADMIN_KEY, BillingAdminController)).toBe(true);
+  });
+});
+
+describe('BillingController route metadata', () => {
+  test('GET /v1/billing/plans is public — the marketing page reads it signed-out', () => {
+    const isPublic = Reflect.getMetadata(PUBLIC_KEY, BillingController.prototype.listPlans);
+    expect(isPublic).toBe(true);
   });
 });

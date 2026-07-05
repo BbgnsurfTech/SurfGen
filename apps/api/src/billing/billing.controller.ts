@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { UnauthorizedError } from '@surfgen/core';
-import { Principal, RequireOrgRole, type AuthenticatedPrincipal } from '../auth/guards';
+import { Principal, Public, RequireOrgRole, type AuthenticatedPrincipal } from '../auth/guards';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { BillingService } from './billing.service';
 
@@ -15,6 +15,8 @@ const CheckoutSchema = z.object({ planId: z.string().min(1) });
 export class BillingController {
   constructor(private readonly billing: BillingService) {}
 
+  /** Plan catalog is deliberately public — the marketing site renders it signed-out. */
+  @Public()
   @Get('billing/plans')
   listPlans() {
     return this.billing.listActivePlans();
