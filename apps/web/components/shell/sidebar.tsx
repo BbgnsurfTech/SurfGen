@@ -23,6 +23,7 @@ import { useEffect, useRef, useState } from 'react';
 import { logout } from '../../lib/api/client';
 import { useMe, useOrg } from '../../lib/api/hooks';
 import { useToast } from '../ui/toast';
+import { useMobileNav } from './mobile-nav';
 
 interface NavItem {
   href: string;
@@ -152,26 +153,40 @@ function AccountMenu() {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { open, close } = useMobileNav();
   return (
-    <aside className="flex w-[236px] flex-none flex-col border-r border-line-dark bg-ink text-sand">
-      <div className="flex items-center gap-[11px] border-b border-carbon px-5 pt-5 pb-4">
-        <Image src="/logo.png" alt="SurfGen logo" width={30} height={30} className="flex-none object-contain" />
-        <div className="leading-none">
-          <div className="font-display text-[17px] font-extrabold tracking-tight text-white">SurfGen</div>
-          <div className="mt-[3px] text-[9.5px] font-medium tracking-[0.18em] text-camel">
-            BBGNSURF · AI VIDEO
+    <>
+      {open && (
+        <div
+          onClick={close}
+          aria-hidden="true"
+          className="fixed inset-0 z-40 bg-ink/60 backdrop-blur-sm lg:hidden"
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-[236px] flex-none flex-col border-r border-line-dark bg-ink text-sand transition-transform duration-200 lg:static lg:translate-x-0 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center gap-[11px] border-b border-carbon px-5 pt-5 pb-4">
+          <Image src="/logo.png" alt="SurfGen logo" width={30} height={30} className="flex-none object-contain" />
+          <div className="leading-none">
+            <div className="font-display text-[17px] font-extrabold tracking-tight text-white">SurfGen</div>
+            <div className="mt-[3px] text-[9.5px] font-medium tracking-[0.18em] text-camel">
+              BBGNSURF · AI VIDEO
+            </div>
           </div>
         </div>
-      </div>
 
-      <nav aria-label="Main navigation" className="flex-1 overflow-y-auto p-3 pt-4">
-        <NavGroup title="CREATE" items={CREATE_NAV} pathname={pathname} />
-        <div className="pt-5">
-          <NavGroup title="ADMIN & OPS" items={ADMIN_NAV} pathname={pathname} />
-        </div>
-      </nav>
+        <nav aria-label="Main navigation" className="flex-1 overflow-y-auto p-3 pt-4" onClick={close}>
+          <NavGroup title="CREATE" items={CREATE_NAV} pathname={pathname} />
+          <div className="pt-5">
+            <NavGroup title="ADMIN & OPS" items={ADMIN_NAV} pathname={pathname} />
+          </div>
+        </nav>
 
-      <AccountMenu />
-    </aside>
+        <AccountMenu />
+      </aside>
+    </>
   );
 }

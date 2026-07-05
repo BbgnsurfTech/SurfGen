@@ -1,12 +1,13 @@
 'use client';
 
-import { LogIn, LogOut, Plus, Search } from 'lucide-react';
+import { LogIn, LogOut, Menu, Plus, Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { logout } from '../../lib/api/client';
 import { useAuthed, useHealth } from '../../lib/api/hooks';
 import { useToast } from '../ui/toast';
+import { useMobileNav } from './mobile-nav';
 import { NewProjectModal } from './new-project-modal';
 
 const TITLES: Record<string, [crumb: string, title: string]> = {
@@ -24,6 +25,7 @@ const TITLES: Record<string, [crumb: string, title: string]> = {
 export function Topbar() {
   const pathname = usePathname();
   const flash = useToast();
+  const { toggle } = useMobileNav();
   const [modalOpen, setModalOpen] = useState(false);
   const [crumb, title] = TITLES[pathname] ?? TITLES['/'];
   const health = useHealth();
@@ -32,6 +34,13 @@ export function Topbar() {
 
   return (
     <header className="z-5 flex h-[60px] flex-none items-center gap-4 border-b border-line bg-white/92 px-6 backdrop-blur-xl">
+      <button
+        onClick={toggle}
+        aria-label="Open navigation"
+        className="flex size-[38px] flex-none items-center justify-center rounded-full border border-line bg-card text-taupe lg:hidden"
+      >
+        <Menu className="size-4" strokeWidth={1.6} />
+      </button>
       <div className="min-w-0">
         <div className="text-[9.5px] font-bold tracking-[0.14em] text-bronze uppercase">{crumb}</div>
         <h1 className="font-display truncate text-[17px] leading-[1.1] font-bold text-ink">{title}</h1>
@@ -39,7 +48,7 @@ export function Topbar() {
       <div className="flex-1" />
       <button
         onClick={() => flash('Search is not wired up yet — filter within each page for now')}
-        className="flex h-[38px] w-60 items-center gap-2 rounded-full border border-line bg-cream px-3.5 text-taupe"
+        className="hidden h-[38px] w-60 items-center gap-2 rounded-full border border-line bg-cream px-3.5 text-taupe sm:flex"
       >
         <Search className="size-[15px]" strokeWidth={1.6} />
         <span className="text-[13px]">Search projects, assets…</span>
@@ -48,7 +57,7 @@ export function Topbar() {
         onClick={() =>
           flash(apiUp ? 'API reachable — health check passed' : 'API unreachable — start the stack (scripts/install.sh)')
         }
-        className="flex h-[38px] items-center gap-[7px] rounded-full border border-line bg-card px-3.5 text-[12.5px] font-semibold text-bark"
+        className="hidden h-[38px] items-center gap-[7px] rounded-full border border-line bg-card px-3.5 text-[12.5px] font-semibold text-bark md:flex"
       >
         <span
           className={`size-2 rounded-full ${

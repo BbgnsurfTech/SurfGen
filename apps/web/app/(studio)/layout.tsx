@@ -1,5 +1,6 @@
 import { AuthGate } from '../../components/shell/auth-gate';
 import { LiveToasts } from '../../components/shell/live-toasts';
+import { MobileNavProvider } from '../../components/shell/mobile-nav';
 import { QueryProvider } from '../../components/shell/query-provider';
 import { Sidebar } from '../../components/shell/sidebar';
 import { Topbar } from '../../components/shell/topbar';
@@ -12,6 +13,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
       <ToastProvider>
       <AuthGate>
       <LiveEventsProvider>
+      <MobileNavProvider>
       <LiveToasts />
       <div className="flex h-dvh w-full overflow-hidden">
         <Sidebar />
@@ -20,6 +22,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
           <section className="relative flex-1 overflow-y-auto">{children}</section>
         </main>
       </div>
+      </MobileNavProvider>
       </LiveEventsProvider>
       </AuthGate>
       </ToastProvider>
