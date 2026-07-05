@@ -122,7 +122,7 @@ export function PipelineSection() {
                     <span className="flex h-9 w-9 items-center justify-center rounded-full bg-shell text-deep">
                       <Icon size={16} strokeWidth={1.6} />
                     </span>
-                    <span className="font-display text-sm font-bold text-ink">{stage.title}</span>
+                    <h3 className="font-display text-sm font-bold text-ink">{stage.title}</h3>
                   </div>
                   <p className="mt-4 text-xs font-bold uppercase tracking-widest text-bronze md:mt-0">
                     Stage {index + 1}
