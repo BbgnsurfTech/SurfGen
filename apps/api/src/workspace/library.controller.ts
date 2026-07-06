@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { NotFoundError } from '@surfgen/core';
+import { ListQuerySchema, cursorArgs, pageResult, type ListQuery } from '../common/list-query';
 import { PrismaService } from '../common/prisma.service';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { RequireOrgRole } from '../auth/guards';
@@ -27,12 +28,17 @@ export class LibraryController {
 
   @Get('avatars')
   @RequireOrgRole('viewer')
-  listAvatars(@Param('orgId') orgId: string) {
-    return this.prisma.avatar.findMany({
+  async listAvatars(
+    @Param('orgId') orgId: string,
+    @Query(new ZodValidationPipe(ListQuerySchema)) query: ListQuery,
+  ) {
+    const avatars = await this.prisma.avatar.findMany({
       where: { organizationId: orgId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
       include: { versions: { where: { isActive: true }, take: 1 } },
+      ...cursorArgs(query),
     });
+    return pageResult(avatars, query.limit);
   }
 
   @Post('avatars')
@@ -56,11 +62,16 @@ export class LibraryController {
 
   @Get('voices')
   @RequireOrgRole('viewer')
-  listVoices(@Param('orgId') orgId: string) {
-    return this.prisma.voice.findMany({
+  async listVoices(
+    @Param('orgId') orgId: string,
+    @Query(new ZodValidationPipe(ListQuerySchema)) query: ListQuery,
+  ) {
+    const voices = await this.prisma.voice.findMany({
       where: { organizationId: orgId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
+      ...cursorArgs(query),
     });
+    return pageResult(voices, query.limit);
   }
 
   // Non-cloned voices only: cloning requires a consent token and runs through

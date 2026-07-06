@@ -55,9 +55,17 @@ describe('BrandsWorkflowsController — soft-delete filtering', () => {
 
   test('listWorkflows excludes soft-deleted workflows', async () => {
     const { controller, prisma } = makeController();
-    await controller.listWorkflows(ORG_ID);
+    await controller.listWorkflows(ORG_ID, { limit: 20 });
     expect(prisma.workflow.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ deletedAt: null }) }),
+    );
+  });
+
+  test('listWorkflows paginates: limit+1 fetch, cursor resume', async () => {
+    const { controller, prisma } = makeController();
+    await controller.listWorkflows(ORG_ID, { limit: 5, cursor: 'wf_5' });
+    expect(prisma.workflow.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 6, cursor: { id: 'wf_5' }, skip: 1 }),
     );
   });
 

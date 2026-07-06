@@ -84,10 +84,11 @@ function useOrgResource<T>(key: string, path: (orgId: string) => string, refetch
 }
 
 export const useStats = () => useOrgResource<Stats>('stats', (org) => `/v1/orgs/${org}/stats`, 30_000);
-export const useAvatars = () => useOrgResource<Avatar[]>('avatars', (org) => `/v1/orgs/${org}/avatars`);
-export const useVoices = () => useOrgResource<Voice[]>('voices', (org) => `/v1/orgs/${org}/voices`);
+// limit=100 (the API max) — these views render one flat list with no load-more yet.
+export const useAvatars = () => useOrgResource<Avatar[]>('avatars', (org) => `/v1/orgs/${org}/avatars?limit=100`);
+export const useVoices = () => useOrgResource<Voice[]>('voices', (org) => `/v1/orgs/${org}/voices?limit=100`);
 export const useBrandKits = () => useOrgResource<BrandKit[]>('brand-kits', (org) => `/v1/orgs/${org}/brand-kits`);
-export const useWorkflows = () => useOrgResource<Workflow[]>('workflows', (org) => `/v1/orgs/${org}/workflows`);
+export const useWorkflows = () => useOrgResource<Workflow[]>('workflows', (org) => `/v1/orgs/${org}/workflows?limit=100`);
 export const useApiKeys = () => useOrgResource<ApiKey[]>('api-keys', (org) => `/v1/orgs/${org}/api-keys`);
 export const useWebhooks = () => useOrgResource<Webhook[]>('webhooks', (org) => `/v1/orgs/${org}/webhooks`);
 

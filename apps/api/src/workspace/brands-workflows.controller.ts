@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { NotFoundError } from '@surfgen/core';
+import { ListQuerySchema, cursorArgs, pageResult, type ListQuery } from '../common/list-query';
 import { PrismaService } from '../common/prisma.service';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { RequireOrgRole } from '../auth/guards';
@@ -86,11 +87,16 @@ export class BrandsWorkflowsController {
   // -------------------------------------------------------------- workflows
   @Get('workflows')
   @RequireOrgRole('viewer')
-  listWorkflows(@Param('orgId') orgId: string) {
-    return this.prisma.workflow.findMany({
+  async listWorkflows(
+    @Param('orgId') orgId: string,
+    @Query(new ZodValidationPipe(ListQuerySchema)) query: ListQuery,
+  ) {
+    const workflows = await this.prisma.workflow.findMany({
       where: { organizationId: orgId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
+      ...cursorArgs(query),
     });
+    return pageResult(workflows, query.limit);
   }
 
   @Post('workflows')
