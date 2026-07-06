@@ -24,7 +24,7 @@ Broadening the provider surface and operational depth.
 - **More providers and runners.** `config/ai.yaml` already sketches the chains with commented-out entries — enabling each means shipping its plugin/runner:
   - `llm-anthropic` (cloud, `env:ANTHROPIC_API_KEY`)
   - `tts-xtts` (local voice cloning; the studio copy already names XTTS as the local clone path)
-  - `lipsync-wav2lip` (Docker runner, GPU recommended) and a SadTalker-style talking-head alternative
+  - `lipsync-wav2lip` (Docker runner, GPU recommended). The SadTalker talking-head provider is already shipped (`plugins/avatar-sadtalker`, CLI runner) — disabled by default for licensing reasons, see its README
   - ComfyUI as an image/video generation backend (model discovery already knows how to probe a local ComfyUI)
   - NLLB for local translation alongside DeepL
 - **Runner kinds: `python`, `docker`, `grpc`, `onnx`.** The provider schema and UI labels accept all six kinds, but only `http` and `cli` runners are implemented in `@surfgen/ai-sdk`. The four remaining runners are what most GPU-bound providers above need.
