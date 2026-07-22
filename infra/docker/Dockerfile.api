@@ -3,14 +3,6 @@ FROM node:22-alpine AS base
 RUN corepack enable
 WORKDIR /app
 
-FROM base AS deps
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY apps/api/package.json apps/api/
-COPY packages ./packages
-COPY plugins ./plugins
-RUN find packages plugins -type d \( -name src -o -name test \) -prune -exec rm -rf {} + 2>/dev/null; \
-    pnpm install --frozen-lockfile --ignore-scripts
-
 FROM base AS build
 COPY . .
 RUN pnpm install --frozen-lockfile && \
@@ -26,11 +18,23 @@ RUN addgroup -S surfgen && adduser -S surfgen -G surfgen
 RUN mkdir -p /app/storage/local && chown -R surfgen:surfgen /app/storage
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=build --chown=surfgen:surfgen /app/apps/api/dist ./dist
+# The pnpm workspace layout must survive into the runtime stage verbatim.
+# Every runtime dependency of @surfgen/api (@nestjs/*, fastify, @surfgen/*) is a
+# *relative* symlink under apps/api/node_modules pointing into
+# ../../../node_modules/.pnpm/... or ../../../packages/...; the root
+# /app/node_modules holds nothing but the repo's own devDependencies. Flattening
+# dist to /app/dist and copying only /app/node_modules therefore resolves none
+# of them — the link sources and their targets both have to be present, at the
+# same relative depth they had in the build stage.
 COPY --from=build --chown=surfgen:surfgen /app/node_modules ./node_modules
 COPY --from=build --chown=surfgen:surfgen /app/packages ./packages
 COPY --from=build --chown=surfgen:surfgen /app/config ./config
+COPY --from=build --chown=surfgen:surfgen /app/apps/api/package.json ./apps/api/package.json
+COPY --from=build --chown=surfgen:surfgen /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=build --chown=surfgen:surfgen /app/apps/api/dist ./apps/api/dist
 USER surfgen
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://127.0.0.1:4000/healthz || exit 1
-CMD ["node", "dist/main.js"]
+# WORKDIR stays /app on purpose: the process resolves ./config and ./storage
+# from process.cwd(), not from the entrypoint's directory.
+CMD ["node", "apps/api/dist/main.js"]

@@ -15,13 +15,25 @@ RUN apk add --no-cache ffmpeg && addgroup -S surfgen && adduser -S surfgen -G su
 RUN mkdir -p /app/storage/local && chown -R surfgen:surfgen /app/storage
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=build --chown=surfgen:surfgen /app/apps/workers/pipeline/dist ./dist
+# The pnpm workspace layout must survive into the runtime stage verbatim.
+# @surfgen/ai-sdk and every other dependency of the pipeline worker is a
+# *relative* symlink under apps/workers/pipeline/node_modules pointing into
+# ../../../../../packages/... or ../../../../../node_modules/.pnpm/...; the root
+# /app/node_modules holds nothing but the repo's own devDependencies. Flattening
+# dist to /app/dist put the entrypoint two directories away from the only
+# node_modules that can resolve it, which is why Node reported
+# ERR_MODULE_NOT_FOUND for @surfgen/ai-sdk.
 COPY --from=build --chown=surfgen:surfgen /app/node_modules ./node_modules
 COPY --from=build --chown=surfgen:surfgen /app/packages ./packages
 COPY --from=build --chown=surfgen:surfgen /app/plugins ./plugins
 COPY --from=build --chown=surfgen:surfgen /app/config ./config
+COPY --from=build --chown=surfgen:surfgen /app/apps/workers/pipeline/package.json ./apps/workers/pipeline/package.json
+COPY --from=build --chown=surfgen:surfgen /app/apps/workers/pipeline/node_modules ./apps/workers/pipeline/node_modules
+COPY --from=build --chown=surfgen:surfgen /app/apps/workers/pipeline/dist ./apps/workers/pipeline/dist
 USER surfgen
 ENV WORKER_QUEUES=cpu.default,cpu.media,gpu.default,gpu.heavy
-CMD ["node", "dist/main.js"]
+# WORKDIR stays /app on purpose: the worker resolves ./config, ./plugins and
+# ./storage from process.cwd(), not from the entrypoint's directory.
+CMD ["node", "apps/workers/pipeline/dist/main.js"]
 EXPOSE 9464
 HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://127.0.0.1:9464/healthz || exit 1
