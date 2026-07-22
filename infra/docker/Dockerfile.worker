@@ -10,6 +10,9 @@ RUN pnpm install --frozen-lockfile && \
 FROM node:22-alpine AS runtime
 # ffmpeg is the reference local render engine; piper installable via models dir.
 RUN apk add --no-cache ffmpeg && addgroup -S surfgen && adduser -S surfgen -G surfgen
+# Same rationale as Dockerfile.api — the worker writes rendered output here and
+# the API serves it from the same volume.
+RUN mkdir -p /app/storage/local && chown -R surfgen:surfgen /app/storage
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build --chown=surfgen:surfgen /app/apps/workers/pipeline/dist ./dist

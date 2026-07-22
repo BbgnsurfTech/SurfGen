@@ -9,6 +9,10 @@ FROM base AS build
 # machine (e.g. http://<server-ip>:4000), not an internal compose hostname.
 ARG NEXT_PUBLIC_API_URL=http://localhost:4000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Root layout metadataBase. Also NEXT_PUBLIC_*, so it is inlined at build time —
+# left unset, Open Graph URLs resolve against localhost.
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 COPY . .
 RUN pnpm install --frozen-lockfile && \
     pnpm turbo build --filter=@surfgen/web

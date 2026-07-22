@@ -19,6 +19,11 @@ RUN pnpm install --frozen-lockfile && \
 
 FROM node:22-alpine AS runtime
 RUN addgroup -S surfgen && adduser -S surfgen -G surfgen
+# Pre-create the local-storage root so a fresh named volume inherits surfgen
+# ownership. Docker seeds an empty volume from the image path, including its
+# owner; without this the volume lands root-owned and the non-root process
+# cannot write rendered media into it.
+RUN mkdir -p /app/storage/local && chown -R surfgen:surfgen /app/storage
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build --chown=surfgen:surfgen /app/apps/api/dist ./dist
