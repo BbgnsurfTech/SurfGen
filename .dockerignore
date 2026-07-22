@@ -1,0 +1,43 @@
+# Build context hygiene. Docker does NOT read .gitignore — anything omitted
+# here is shipped to the daemon and can be captured by `COPY . .`.
+
+# Secrets — must never enter an image layer.
+.env
+.env.*
+!.env.example
+
+# Dependencies and build caches — reinstalled inside the image.
+node_modules
+**/node_modules
+.turbo
+**/.turbo
+**/dist
+**/.next
+**/build
+**/.venv
+__pycache__
+
+# VCS and local tooling.
+.git
+.github
+.claude
+.superpowers
+.DS_Store
+
+# Test and coverage artifacts.
+coverage
+**/coverage
+**/test-results
+**/playwright-report
+apps/web/e2e/__screenshots__
+
+# Local storage and archives.
+storage
+*.zip
+
+# Infra that no image build needs.
+infra/k8s
+infra/terraform
+infra/monitoring
+docs
+tests
