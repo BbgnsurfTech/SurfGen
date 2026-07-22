@@ -18,6 +18,9 @@ coverage/
 .env
 .env.*
 !.env.example
+# Per-target templates (e.g. infra/docker/.env.hostinger.example) hold only
+# placeholders — .env.* above would otherwise swallow them.
+!.env.*.example
 *.pem
 *.key
 
