@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { GITHUB_REPO_URL, githubBlobUrl, githubReadmeAnchor } from '@/lib/marketing/links';
 
 const COLUMNS = [
   {
@@ -14,9 +15,9 @@ const COLUMNS = [
   {
     title: 'Open source',
     links: [
-      { href: 'https://github.com/BBGNSURF/SurfGen', label: 'GitHub' },
-      { href: 'https://github.com/BBGNSURF/SurfGen#quick-start', label: 'Self-host guide' },
-      { href: 'https://github.com/BBGNSURF/SurfGen/blob/main/docs/roadmap.md', label: 'Roadmap' },
+      { href: GITHUB_REPO_URL, label: 'GitHub' },
+      { href: githubReadmeAnchor('quick-start'), label: 'Self-host guide' },
+      { href: githubBlobUrl('docs/roadmap.md'), label: 'Roadmap' },
     ],
   },
   {

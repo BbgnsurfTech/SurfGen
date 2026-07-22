@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ensureSession, isAuthed } from '../../lib/api/client';
+import { GITHUB_REPO_URL } from '@/lib/marketing/links';
 
 const LINKS = [
   { href: '#product', label: 'Product' },
@@ -48,7 +49,7 @@ export function MarketingNav() {
 
         <div className="flex items-center gap-3">
           <a
-            href="https://github.com/BBGNSURF/SurfGen"
+            href={GITHUB_REPO_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="hidden text-sm font-semibold text-taupe transition-colors hover:text-primary sm:block"

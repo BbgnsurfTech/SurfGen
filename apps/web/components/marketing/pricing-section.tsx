@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api/client';
 import type { BillingPlan, PublicPlans } from '../../lib/api/types';
 import { formatPlanPrice, intervalLabel } from '../../lib/marketing/format-plan';
+import { GITHUB_REPO_URL } from '@/lib/marketing/links';
 
 type PlansState =
   | { status: 'loading' }
@@ -70,7 +71,7 @@ function FallbackCard() {
           Create account
         </Link>
         <a
-          href="https://github.com/BBGNSURF/SurfGen"
+          href={GITHUB_REPO_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-full border border-line px-7 py-3 text-sm font-bold text-bark transition-colors hover:border-primary hover:text-primary"
