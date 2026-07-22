@@ -1,0 +1,195 @@
+# SurfGen on the Hostinger VPS (srv1613644 / 76.13.44.91), served at
+# https://surfgen.io.
+#
+# Deployed through the Hostinger VPS project API, which writes this file plus a
+# .env to /docker/surfgen/ and brings the stack up. There is no SSH step and
+# nothing is copied from a workstation, so images build on the VPS straight from
+# the public repository via a git build context.
+#
+# Differences from docker-compose.full.yml, which stays the portable reference:
+#   * git build context instead of a local path
+#   * no published host ports — host-networked Traefik reaches bridge IPs, and
+#     publishing would expose Postgres/RabbitMQ and collide with bedrock on 3000
+#   * no MinIO — the s3 driver presigns against SURFGEN_STORAGE__ENDPOINT, so
+#     browsers would receive unreachable http://minio:9000/... URLs. The local
+#     driver signs links to the API's own /v1/media instead.
+name: surfgen
+
+x-git-context: &git-context https://github.com/BbgnsurfTech/SurfGen.git#main
+
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: postgresql://surfgen:${POSTGRES_PASSWORD}@postgres:5432/surfgen
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  AMQP_URL: amqp://surfgen:${RABBITMQ_PASSWORD}@rabbitmq:5672
+  JWT_SECRET: ${JWT_SECRET}
+  SURFGEN_ENCRYPTION_KEY: ${SURFGEN_ENCRYPTION_KEY}
+  # Base for HMAC-signed /v1/media playback links (local storage driver).
+  PUBLIC_API_URL: https://surfgen.io
+  # Host used in signup verification emails.
+  PUBLIC_WEB_URL: https://surfgen.io
+  CORS_ORIGINS: https://surfgen.io
+  # COOKIE_SECURE is intentionally unset: NODE_ENV=production already forces it.
+  # Runtime-driven, defaults to off: SMTP is configured from the admin
+  # dashboard after deploy, so verification is flipped on once mail works.
+  REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-}
+  SMTP_HOST: ${SMTP_HOST}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER}
+  SMTP_PASS: ${SMTP_PASS}
+  MAIL_FROM: ${MAIL_FROM}
+
+services:
+  # ------------------------------------------------------------ infrastructure
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: surfgen
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: surfgen
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U surfgen"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: surfgen
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ------------------------------------------------------ migration + seeding
+  migrate:
+    build:
+      context: *git-context
+      dockerfile: infra/docker/Dockerfile.api
+      target: build
+    # No migrations directory exists yet, so migrate deploy falls through to
+    # db push. The seed is idempotent (upsert / findFirst-guarded create), so
+    # it is safe on every deploy.
+    command: >
+      /bin/sh -c "(pnpm --filter @surfgen/db exec prisma migrate deploy ||
+                   pnpm --filter @surfgen/db exec prisma db push) &&
+                  pnpm --filter @surfgen/db seed"
+    environment:
+      DATABASE_URL: postgresql://surfgen:${POSTGRES_PASSWORD}@postgres:5432/surfgen
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # -------------------------------------------------------------- applications
+  api:
+    build:
+      context: *git-context
+      dockerfile: infra/docker/Dockerfile.api
+    environment:
+      <<: *app-env
+      PORT: "4000"
+    volumes:
+      - media:/app/storage/local
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      # Priority 100 so the API's paths win over the web catch-all below,
+      # rather than relying on Traefik's rule-length heuristic.
+      - "traefik.http.routers.surfgen-api.rule=Host(`surfgen.io`) && (PathPrefix(`/v1`) || PathPrefix(`/ws`) || PathPrefix(`/docs`) || Path(`/healthz`) || Path(`/readyz`))"
+      - traefik.http.routers.surfgen-api.entrypoints=websecure
+      - traefik.http.routers.surfgen-api.tls.certresolver=letsencrypt
+      - traefik.http.routers.surfgen-api.priority=100
+      - traefik.http.routers.surfgen-api.service=surfgen-api
+      - traefik.http.services.surfgen-api.loadbalancer.server.port=4000
+
+  worker:
+    build:
+      context: *git-context
+      dockerfile: infra/docker/Dockerfile.worker
+    environment:
+      <<: *app-env
+      # One worker serves every queue class; "gpu" names are scheduling labels
+      # and the reference providers (piper/ffmpeg) run on CPU.
+      WORKER_QUEUES: cpu.default,cpu.media,gpu.default,gpu.heavy,io.webhooks,io.analytics
+    volumes:
+      - media:/app/storage/local
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: *git-context
+      dockerfile: infra/docker/Dockerfile.web
+      args:
+        # Inlined into the client bundle — changing these needs a rebuild.
+        NEXT_PUBLIC_API_URL: https://surfgen.io
+        NEXT_PUBLIC_SITE_URL: https://surfgen.io
+    environment:
+      NEXT_PUBLIC_API_URL: https://surfgen.io
+      NEXT_PUBLIC_SITE_URL: https://surfgen.io
+    depends_on:
+      - api
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      # One router per hostname rather than a single two-host rule, so a
+      # pending DNS record for one cannot block the other's cert issuance.
+      - "traefik.http.routers.surfgen-web.rule=Host(`surfgen.io`)"
+      - traefik.http.routers.surfgen-web.entrypoints=websecure
+      - traefik.http.routers.surfgen-web.tls.certresolver=letsencrypt
+      - traefik.http.routers.surfgen-web.priority=1
+      - traefik.http.routers.surfgen-web.service=surfgen-web
+      - "traefik.http.routers.surfgen-www.rule=Host(`www.surfgen.io`)"
+      - traefik.http.routers.surfgen-www.entrypoints=websecure
+      - traefik.http.routers.surfgen-www.tls.certresolver=letsencrypt
+      - traefik.http.routers.surfgen-www.priority=1
+      - traefik.http.routers.surfgen-www.service=surfgen-web
+      - traefik.http.routers.surfgen-www.middlewares=surfgen-www-redirect
+      # $$ escapes compose interpolation so Traefik receives ${1}.
+      - "traefik.http.middlewares.surfgen-www-redirect.redirectregex.regex=^https://www\\.surfgen\\.io/(.*)"
+      - traefik.http.middlewares.surfgen-www-redirect.redirectregex.replacement=https://surfgen.io/$${1}
+      - traefik.http.middlewares.surfgen-www-redirect.redirectregex.permanent=true
+      - traefik.http.services.surfgen-web.loadbalancer.server.port=3000
+
+volumes:
+  pgdata:
+  redisdata:
+  rabbitdata:
+  media:
