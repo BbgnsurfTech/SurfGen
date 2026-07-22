@@ -301,3 +301,104 @@ Reference setup in [`infra/monitoring`](../../infra/monitoring); shipped in the 
       `runAsNonRoot: true`).
 - [ ] Plugin permissions: review `permissions` in each installed plugin's manifest
       (`network` / `filesystem` / `subprocess` / `gpu`) before deploying third-party plugins.
+
+## Hostinger VPS (production — surfgen.io)
+
+The live deployment runs on Hostinger VPS `1613644` (`srv1613644.hstgr.cloud`, `76.13.44.91`)
+from `infra/docker/docker-compose.hostinger.yml`, served at `https://surfgen.io`.
+
+Design rationale: `docs/superpowers/specs/2026-07-22-hostinger-deployment-design.md`.
+
+### How it differs from `docker-compose.full.yml`
+
+| | full | hostinger |
+| --- | --- | --- |
+| Build context | local path | git URL, built on the VPS |
+| Host ports | published | none — Traefik reaches bridge IPs |
+| Storage | MinIO (s3 driver) | `local` driver + shared `media` volume |
+| TLS | none | Traefik + Let's Encrypt |
+| Worker replicas | 2 | 1 |
+
+The VPS's Traefik runs `network_mode: host` with `exposedbydefault=false`, so services opt in
+by label and no shared proxy network is needed. Only `api` and `web` are labelled.
+
+### Routing
+
+One origin, split by path. Priority 100 sends `/v1`, `/ws`, `/docs`, `/healthz` and `/readyz`
+to `api:4000`; priority 1 sends everything else to `web:3000`. `/metrics` is deliberately
+unrouted. `www.surfgen.io` redirects to the apex.
+
+Do not add a router for `srv1613644.hstgr.cloud` — the `bedrock` project already claims it.
+
+### Image layout — why the runtime stages copy the whole workspace
+
+`Dockerfile.api` and `Dockerfile.worker` copy the build stage's directory structure **verbatim**
+(`/app/node_modules`, `/app/packages`, `/app/apps/<app>/node_modules`, `/app/apps/<app>/dist`)
+rather than flattening `dist` to `/app/dist`. This is load-bearing, not stylistic.
+
+pnpm does not hoist workspace packages to the root `node_modules`. Every runtime dependency —
+`@nestjs/*`, `fastify`, `@surfgen/*` — is a **relative symlink** under the app's own
+`node_modules`, pointing at `../../../node_modules/.pnpm/…` or `../../../packages/…`. Copying
+only `/app/node_modules` and putting the entrypoint at `/app/dist/main.js` leaves those links
+dangling, which surfaced as `ERR_MODULE_NOT_FOUND: @surfgen/ai-sdk`. Because the links are
+relative, they resolve correctly only when both the link and its target keep the same absolute
+depth they had at build time.
+
+`WORKDIR` therefore stays `/app` and the entrypoint is addressed as `apps/<app>/dist/main.js`.
+Do not "simplify" this by moving `WORKDIR` into the app directory: the api and worker both
+resolve config as `resolve(process.cwd(), 'config')` and storage as a cwd-relative
+`./storage/local`, so a different cwd silently breaks config loading and writes rendered media
+outside the mounted volume.
+
+Related: `apps/api/tsconfig.json` sets `rootDir: "."`, so `tsconfig.build.json` **must** override
+it to `"src"`. Without that override `tsc` emits `dist/src/main.js` instead of `dist/main.js`,
+and the container dies with `Cannot find module '/app/dist/main.js'`.
+
+### Deploying a change
+
+1. Merge to `main` and push. The compose file builds from `main`, so unpushed commits are invisible.
+2. Re-create the project via the Hostinger API (`VPS_createNewProjectV1`, project `surfgen`),
+   passing the same compose content and environment. Named volumes persist.
+3. Poll `VPS_getProjectContainersV1` until `migrate` exits 0 and the rest are running.
+
+`VPS_updateProjectV1` pulls newer images rather than rebuilding, so it will not pick up source
+changes from a git context.
+
+### Environment
+
+Secrets live only in `/docker/surfgen/.env` on the VPS. `infra/docker/.env.hostinger.example`
+documents the shape. Retrieve the live values with `VPS_getProjectContentsV1` rather than
+regenerating them — new secrets will not match the existing Postgres volume.
+
+`JWT_SECRET` must be identical for `api` and `worker`: media playback links are signed with
+`sha256("media:" + JWT_SECRET)`, so a mismatch produces links the API rejects.
+
+`NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_SITE_URL` are inlined into the client bundle at build
+time. Changing the domain requires a rebuild, not a restart.
+
+### Storage
+
+The `local` driver writes to the `media` volume, shared by `api` and `worker`, and the API
+serves it from `GET /v1/media` behind HMAC-signed links.
+
+The s3/MinIO path is deliberately not used here: `S3Storage.signedUrl()` presigns against the
+configured endpoint, so an internal `http://minio:9000` endpoint produces URLs browsers cannot
+resolve, and the `cdn.baseUrl` key that would rewrite the host is declared in
+`packages/config/src/schemas.ts` but read nowhere. Moving to S3/R2 later means giving the
+object store a real public hostname and setting the endpoint to it.
+
+Both images pre-create `/app/storage/local` owned by `surfgen`, because Docker seeds a fresh
+named volume from the image's content at that path including ownership — without it the volume
+lands root-owned and the non-root runtime cannot write.
+
+### Rollback
+
+- Application: re-create the project from a previous commit by pinning the git context to a SHA
+  (`...SurfGen.git#<sha>`) instead of `#main`.
+- DNS: point the `surfgen.io` `@` A record back to `2.57.91.91`. TTL is 50 s.
+
+### Known follow-ups
+
+- No Prisma migrations directory exists, so `migrate deploy` falls through to `db push`.
+  Generate a baseline migration from the running container and commit it.
+- The co-tenant `postgresql-u6ju` publishes `0.0.0.0:32768`; unrelated to SurfGen but worth closing.

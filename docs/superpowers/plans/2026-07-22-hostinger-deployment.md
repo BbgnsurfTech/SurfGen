@@ -179,10 +179,15 @@ Then change line 51 from `href="https://github.com/BBGNSURF/SurfGen"` to:
 - [ ] **Step 8: Verify no stale occurrence remains anywhere**
 
 ```bash
-grep -rn "BBGNSURF" apps packages plugins docs --include="*.ts" --include="*.tsx" --include="*.md" 2>/dev/null | grep -v node_modules || echo "clean: no stale org references"
+grep -rn "github.com/BBGNSURF" apps packages plugins 2>/dev/null | grep -v node_modules || echo "clean: no stale org references"
 ```
 
 Expected: `clean: no stale org references`.
+
+Match the **URL literal**, not the bare token. `BBGNSURF` on its own is legitimate brand
+copy — `BBGNSURF · AI VIDEO` in `login`, `signup`, `verify-email` and `sidebar`, plus a
+`BBGNSURF Core` placeholder in `brand-form` — so a grep for the bare token can never print
+`clean` and would wrongly read as a failure.
 
 - [ ] **Step 9: Verify the import alias resolves and types check**
 
@@ -673,16 +678,33 @@ Expected: `GOOD: no published ports`.
 grep -n "redirectregex.replacement" /tmp/surfgen-rendered.yml
 ```
 
-Expected: the value is `https://surfgen.io/${1}` — a single `$`. If it shows `$${1}` or `https://surfgen.io/`, the escaping is wrong and www redirects would drop the path.
+Expected: the value is `https://surfgen.io/$${1}` — a **double** `$`, same as the source file.
+
+`docker compose config` re-escapes `$` as `$$` so its output can be fed back in without a
+second round of interpolation. A double `$` here therefore means the escaping is *correct*;
+seeing a single `$` would mean compose had already consumed it. This step cannot distinguish
+a genuine bug — verify the effective value on a running container instead:
+
+```bash
+docker inspect surfgen-web-1 \
+  --format '{{ index .Config.Labels "traefik.http.middlewares.surfgen-www-redirect.redirectregex.replacement" }}'
+```
+
+Expected there: `https://surfgen.io/${1}` — a single `$`, since compose has interpolated once
+on the way in. Task 7 Step 4 is the real end-to-end proof.
 
 - [ ] **Step 6: Verify both apps share one JWT secret and the storage override is absent**
 
 ```bash
-grep -c "JWT_SECRET: x" /tmp/surfgen-rendered.yml   # expect 2 (api, worker)
+grep -c "JWT_SECRET: x" /tmp/surfgen-rendered.yml   # expect 3 (x-app-env anchor, api, worker)
 grep -n "SURFGEN_STORAGE__" /tmp/surfgen-rendered.yml && echo "FAIL: storage override present" || echo "GOOD: local driver default retained"
 ```
 
-Expected: `2`, then `GOOD: local driver default retained`.
+Expected: `3`, then `GOOD: local driver default retained`.
+
+The count is `3`, not `2`: `docker compose config` preserves the `x-app-env` extension block,
+so the anchor's own `JWT_SECRET` is emitted alongside the two services that merge it. What
+matters is that all three render the *same* value — a mismatch there breaks media playback.
 
 - [ ] **Step 7: Verify the media volume is mounted in both api and worker**
 
