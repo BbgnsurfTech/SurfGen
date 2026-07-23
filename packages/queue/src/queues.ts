@@ -18,7 +18,13 @@ export const QUEUE_DEFINITIONS: Record<JobQueueName, QueueDefinition> = {
   'io.analytics': { concurrencyDefault: 16, description: 'Usage + analytics fan-out' },
 };
 
-const BULL_PREFIX = 'surfgen:';
+// BullMQ reserves ':' as its Redis key separator (keys are `${prefix}:${name}`)
+// and throws "Queue name cannot contain :" for any name that includes one. The
+// prefix must therefore stay ':'-free; '-' keeps names namespaced and readable.
+// Both the producer (BullJobQueue) and consumer (createStageWorker) route queue
+// names through queueNameToBullName, so this separator can never desync between
+// the two sides.
+const BULL_PREFIX = 'surfgen-';
 
 export const queueNameToBullName = (name: JobQueueName): string => `${BULL_PREFIX}${name}`;
 

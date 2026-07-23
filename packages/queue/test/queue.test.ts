@@ -12,8 +12,18 @@ describe('queue names', () => {
   });
 
   test('unknown or unprefixed names map to null', () => {
-    expect(bullNameToQueueName('surfgen:not.a.queue')).toBeNull();
+    expect(bullNameToQueueName('surfgen-not.a.queue')).toBeNull();
     expect(bullNameToQueueName('cpu.default')).toBeNull();
+  });
+
+  // BullMQ reserves ':' as its Redis key separator and throws
+  // "Queue name cannot contain :" when a queue name includes one. The prefix
+  // must therefore use a ':'-free separator. This guards the regression that
+  // crash-looped the worker in production.
+  test('no bull queue name contains a colon', () => {
+    for (const name of Object.keys(QUEUE_DEFINITIONS) as JobQueueName[]) {
+      expect(queueNameToBullName(name)).not.toContain(':');
+    }
   });
 });
 
@@ -110,7 +120,7 @@ describe('BullJobQueue', () => {
     });
     expect(jobId).toBe('job-1');
     expect(added[0]).toMatchObject({
-      bullName: 'surfgen:gpu.default',
+      bullName: 'surfgen-gpu.default',
       name: 'tts',
       data: { text: 'hi' },
       opts: {
