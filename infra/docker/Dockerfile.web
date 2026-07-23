@@ -25,6 +25,9 @@ ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 COPY --from=build --chown=surfgen:surfgen /app/apps/web/.next/standalone ./
 COPY --from=build --chown=surfgen:surfgen /app/apps/web/.next/static ./apps/web/.next/static
+# `output: standalone` deliberately omits public/ — it must be copied in by hand,
+# or every /public asset (logos, og.webp) 404s and next/image returns 400.
+COPY --from=build --chown=surfgen:surfgen /app/apps/web/public ./apps/web/public
 USER surfgen
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://127.0.0.1:3000/ || exit 1
